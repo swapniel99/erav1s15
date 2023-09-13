@@ -2,7 +2,6 @@ from model import build_transformer
 from dataset import BilingualDataset, causal_mask
 from config import get_config, get_weights_file_path
 
-import torchtext.datasets as datasets
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -175,7 +174,7 @@ def get_ds(config):
     print(f'Max length of target sentence: {max_len_tgt}')
 
     train_dataloader = DataLoader(train_ds, batch_size=config['batch_size'], shuffle=True)
-    val_dataloader = DataLoader(val_ds, batch_size=1, shuffle=True)
+    val_dataloader = DataLoader(val_ds, batch_size=1, shuffle=False)
 
     return train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt
 
@@ -188,7 +187,7 @@ def get_model(config, vocab_src_len, vocab_tgt_len):
 
 def train_model(config):
     # Define the device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = config['device']
     print("Using device:", device)
 
     # Make sure the weights folder exists
@@ -213,7 +212,7 @@ def train_model(config):
         optimizer.load_state_dict(state['optimizer_state_dict'])
         global_step = state['global_step']
 
-    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id('[PAD]'), label_smoothing=0.1).to(device)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_tgt.token_to_id('[PAD]'), label_smoothing=0.1).to(device)
 
     for epoch in range(initial_epoch, config['num_epochs']):
         torch.cuda.empty_cache()
