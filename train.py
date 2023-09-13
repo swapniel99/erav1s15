@@ -4,8 +4,7 @@ from config import get_config, get_weights_file_path
 
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, random_split
-from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import DataLoader, random_split
 
 import warnings
 from tqdm import tqdm
