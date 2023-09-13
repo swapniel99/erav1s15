@@ -186,7 +186,7 @@ def get_model(config, vocab_src_len, vocab_tgt_len):
 
 def train_model(config):
     # Define the device
-    device = config['device']
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("Using device:", device)
 
     # Make sure the weights folder exists
