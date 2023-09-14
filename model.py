@@ -67,7 +67,7 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         # (batch, seq_len, d_model)
-        x = x + (self.pe[:, :x.shape[1], :]).requires_grad_(False)
+        x = x + self.pe[:, :x.shape[1], :].requires_grad_(False)
         return self.dropout(x)
 
 
