@@ -114,9 +114,9 @@ class MultiHeadAttentionBlock(nn.Module):
             attention_scores = dropout(attention_scores)
         # (batch, h, seq_len, seq_len) --> (batch, h, seq_len, d_k)
         # return attention scores which can be used for visualization
-        return attention_scores @ value
+        return attention_scores @ value, attention_scores
 
-    def forward(self, q, k, v, mask):
+    def forward(self, q, k, v, mask, return_attention=False):
         query = self.w_q(q)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
         key = self.w_k(k)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
         value = self.w_v(v)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
@@ -127,7 +127,7 @@ class MultiHeadAttentionBlock(nn.Module):
         value = value.view(value.shape[0], value.shape[1], self.h, self.d_k).transpose(1, 2)
 
         # Calculate attention
-        x = MultiHeadAttentionBlock.attention(query, key, value, mask, self.dropout)
+        x, attention_scores = self.attention(query, key, value, mask, self.dropout)
 
         # Combine all the heads together
         # (batch, h, seq_len, d_k) --> (batch, seq_len, h, d_k) --> (batch, seq_len, d_model)
@@ -135,7 +135,11 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # Multiply by Wo
         # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
-        return self.w_o(x)
+        x = self.w_o(x)
+        if return_attention:
+            return x, attention_scores
+        else:
+            return x
 
 
 class EncoderBlock(nn.Module):
