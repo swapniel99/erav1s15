@@ -212,27 +212,26 @@ class ProjectionLayer(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, src_vocab_size: int, tgt_vocab_size: int, src_seq_len: int, tgt_seq_len: int, d_model: int = 512,
-                 N: int = 6, h: int = 8, dropout: float = 0.1, d_ff: int = 2048) -> None:
+    def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int, d_model: int = 512, N: int = 6,
+                 h: int = 8, dropout: float = 0.1, d_ff: int = 2048) -> None:
         super(Transformer, self).__init__()
         self.encoder = Encoder(d_model, N, h, d_ff, dropout)
         self.decoder = Decoder(d_model, N, h, d_ff, dropout)
         self.src_embed = InputEmbeddings(src_vocab_size, d_model)
         self.tgt_embed = InputEmbeddings(tgt_vocab_size, d_model)
-        self.src_pos = PositionalEncoding(d_model, src_seq_len, dropout)
-        self.tgt_pos = PositionalEncoding(d_model, tgt_seq_len, dropout)
+        self.pos_embed = PositionalEncoding(d_model, max_seq_len, dropout)
         self.projection_layer = ProjectionLayer(d_model, tgt_vocab_size)
 
     def encode(self, src, src_mask):
         # (batch, seq_len, d_model)
         src = self.src_embed(src)
-        src = self.src_pos(src)
+        src = self.pos_embed(src)
         return self.encoder(src, src_mask)
 
     def decode(self, encoder_output, src_mask, tgt, tgt_mask):
         # (batch, seq_len, d_model)
         tgt = self.tgt_embed(tgt)
-        tgt = self.tgt_pos(tgt)
+        tgt = self.pos_embed(tgt)
         return self.decoder(tgt, encoder_output, src_mask, tgt_mask)
 
     def project(self, x):

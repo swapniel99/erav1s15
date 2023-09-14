@@ -1,5 +1,5 @@
 from model import Transformer
-from dataset import BilingualDataset, causal_mask
+from dataset import BilingualDataset
 from config import get_config, get_weights_file_path
 
 import torch
@@ -22,7 +22,7 @@ import torchmetrics
 from torch.utils.tensorboard import SummaryWriter
 
 
-def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_len, device):
+def greedy_decode(model, source, source_mask, tokenizer_tgt, max_len, device):
     sos_idx = tokenizer_tgt.token_to_id('[SOS]')
     eos_idx = tokenizer_tgt.token_to_id('[EOS]')
 
@@ -35,7 +35,7 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
             break
 
         # build mask for target
-        decoder_mask = causal_mask(decoder_input.size(1)).type_as(source_mask).to(device)
+        decoder_mask = BilingualDataset.causal_mask(decoder_input.size(1)).type_as(source_mask).to(device)
 
         # calculate output
         out = model.decode(encoder_output, source_mask, decoder_input, decoder_mask)
@@ -179,8 +179,7 @@ def get_ds(config):
 
 
 def get_model(config, vocab_src_len, vocab_tgt_len):
-    model = Transformer(vocab_src_len, vocab_tgt_len, config["seq_len"], config['seq_len'],
-                        d_model=config['d_model'])
+    model = Transformer(vocab_src_len, vocab_tgt_len, config['seq_len'], d_model=config['d_model'])
     return model
 
 
