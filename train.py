@@ -218,22 +218,21 @@ def train_model(config):
         model.train()
         batch_iterator = tqdm(train_dataloader, desc=f"Processing Epoch {epoch:02d}")
         for batch in batch_iterator:
-            encoder_input = batch['encoder_input'].to(device)  # (b, seq_len)
+            encoder_input = batch['encoder_input'].to(device)  # (B, seq_len)
             decoder_input = batch['decoder_input'].to(device)  # (B, seq_len)
             encoder_mask = batch['encoder_mask'].to(device)  # (B, 1, 1, seq_len)
             decoder_mask = batch['decoder_mask'].to(device)  # (B, 1, seq_len, seq_len)
 
             # Run the tensors through the encoder, decoder and the projection layer
             encoder_output = model.encode(encoder_input, encoder_mask)  # (B, seq_len, d_model)
-            decoder_output = model.decode(encoder_output, encoder_mask, decoder_input,
-                                          decoder_mask)  # (B, seq_len, d_model)
+            decoder_output = model.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)  # (B, seq_len, d_model)
             proj_output = model.project(decoder_output)  # (B, seq_len, vocab_size)
 
             # Compare the output with the label
             label = batch['label'].to(device)  # (B, seq_len)
 
             # Compute the loss using a simple cross entropy
-            loss = loss_fn(proj_output.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
+            loss = loss_fn(proj_output.view(-1, proj_output.shape[-1]), label.view(-1))
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
 
             # Log the loss
