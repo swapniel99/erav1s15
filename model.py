@@ -17,6 +17,7 @@ class LayerNormalization(nn.Module):
         # Keep the dimension for broadcasting
         std = x.std(dim=-1, keepdim=True)  # (batch, seq_len, 1)
         # eps is to prevent dividing by zero or when std is very small
+        # (batch, seq_len, hidden_size)
         return self.alpha * (x - mean) / (std + self.eps) + self.bias
 
 
@@ -29,7 +30,7 @@ class FeedForwardBlock(nn.Module):
 
     def forward(self, x):
         # (batch, seq_len, d_model) --> (batch, seq_len, d_ff) --> (batch, seq_len, d_model)
-        return self.linear_2(self.dropout(torch.relu(self.linear_1(x))))
+        return self.linear_2(self.dropout(self.linear_1(x).relu()))
 
 
 class InputEmbeddings(nn.Embedding):
@@ -104,7 +105,7 @@ class MultiHeadAttentionBlock(nn.Module):
     def attention(query, key, value, mask, dropout: nn.Dropout):
         d_k = query.shape[-1]
         # Just apply the formula from the paper
-        # (batch, h, seq_len, d_k) --> (batch, h, seq_len, seq_len)
+        # (batch, h, seq_len, d_k) @ (batch, h, d_k, seq_len) --> (batch, h, seq_len, seq_len)
         attention_scores = (query @ key.transpose(-2, -1)) * (d_k ** -0.5)
         if mask is not None:
             # Write a very low value (indicating -inf) to the positions where mask == 0
@@ -112,7 +113,7 @@ class MultiHeadAttentionBlock(nn.Module):
         attention_scores = attention_scores.softmax(dim=-1)  # (batch, h, seq_len, seq_len) # Apply softmax
         if dropout is not None:
             attention_scores = dropout(attention_scores)
-        # (batch, h, seq_len, seq_len) --> (batch, h, seq_len, d_k)
+        # (batch, h, seq_len, seq_len) @ (batch, h, seq_len, d_k)--> (batch, h, seq_len, d_k)
         # return attention scores which can be used for visualization
         return attention_scores @ value, attention_scores
 
@@ -131,7 +132,7 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # Combine all the heads together
         # (batch, h, seq_len, d_k) --> (batch, seq_len, h, d_k) --> (batch, seq_len, d_model)
-        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)
+        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)  # d_model = h * d_k
 
         # Multiply by Wo
         # (batch, seq_len, d_model) --> (batch, seq_len, d_model)

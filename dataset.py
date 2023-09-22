@@ -75,16 +75,16 @@ class BilingualDataset(Dataset):
         )
 
         # Double-check the size of the tensors to make sure they are all seq_len long
-        assert encoder_input.size(0) == self.seq_len
-        assert decoder_input.size(0) == self.seq_len
-        assert label.size(0) == self.seq_len
+        assert encoder_input.shape[0] == self.seq_len
+        assert decoder_input.shape[0] == self.seq_len
+        assert label.shape[0] == self.seq_len
 
         return {
             "encoder_input": encoder_input,  # (seq_len)
             "decoder_input": decoder_input,  # (seq_len)
             "encoder_mask": (encoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int(),  # (1, 1, seq_len)
             "decoder_mask": (decoder_input != self.pad_token).unsqueeze(0).int()  # (1, seq_len)
-                & self.causal_mask(decoder_input.size(0)).unsqueeze(0).int(),  # (1, seq_len, seq_len)
+                & self.causal_mask(decoder_input.shape[0]).unsqueeze(0).int(),  # (1, seq_len, seq_len)
             "label": label,  # (seq_len)
             "src_text": src_text,  # str
             "tgt_text": tgt_text  # str

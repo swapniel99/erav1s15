@@ -31,17 +31,17 @@ def greedy_decode(model, source, source_mask, tokenizer_tgt, max_len, device):
     # Initialize the decoder input with the sos token
     decoder_input = torch.empty(1, 1).fill_(sos_idx).type_as(source).to(device)
     while True:
-        if decoder_input.size(1) == max_len:
+        if decoder_input.shape[1] == max_len:
             break
 
         # build mask for target
-        decoder_mask = BilingualDataset.causal_mask(decoder_input.size(1)).type_as(source_mask).to(device)
+        decoder_mask = BilingualDataset.causal_mask(decoder_input.shape[1]).type_as(source_mask).to(device)
 
         # calculate output
         out = model.decode(encoder_output, source_mask, decoder_input, decoder_mask)
 
-        # get next token
-        prob = model.project(out[:, -1])
+        # get next token for input from last token of output
+        prob = model.project(out[:, -1, :])
         _, next_word = torch.max(prob, dim=1)
         decoder_input = torch.cat(
             [decoder_input, torch.empty(1, 1).type_as(source).fill_(next_word.item()).to(device)], dim=1
@@ -74,12 +74,11 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
     with torch.no_grad():
         for batch in validation_ds:
             count += 1
-            encoder_input = batch["encoder_input"].to(device)  # (b, seq_len)
-            encoder_mask = batch["encoder_mask"].to(device)  # (b, 1, 1, seq_len)
+            encoder_input = batch["encoder_input"].to(device)  # (B, seq_len)
+            encoder_mask = batch["encoder_mask"].to(device)  # (B, 1, 1, seq_len)
 
             # check that the batch size is 1
-            assert encoder_input.size(
-                0) == 1, "Batch size must be 1 for validation"
+            assert encoder_input.shape[0] == 1, "Batch size must be 1 for validation"
 
             model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
 
@@ -131,9 +130,9 @@ def get_or_build_tokenizer(config, ds, lang):
     tokenizer_path = Path(config['tokenizer_file'].format(lang))
     if not Path.exists(tokenizer_path):
         # Most code taken from: https://huggingface.co/docs/tokenizers/quicktour
-        tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
+        tokenizer = Tokenizer(WordLevel(unk_token='[UNK]'))
         tokenizer.pre_tokenizer = Whitespace()
-        trainer = WordLevelTrainer(special_tokens=["[UNK]", "[PAD]", "[SOS]", "[EOS]"], min_frequency=2)
+        trainer = WordLevelTrainer(special_tokens=['[UNK]', '[PAD]', '[SOS]', '[EOS]'], min_frequency=2)
         tokenizer.train_from_iterator(get_all_sentences(ds, lang), trainer=trainer)
         tokenizer.save(str(tokenizer_path))
     else:
@@ -160,14 +159,8 @@ def get_ds(config):
                               config['seq_len'])
 
     # Find the maximum length of each sentence in the source and target sentence
-    max_len_src = 0
-    max_len_tgt = 0
-
-    for item in ds_raw:
-        src_ids = tokenizer_src.encode(item['translation'][config['lang_src']]).ids
-        tgt_ids = tokenizer_tgt.encode(item['translation'][config['lang_tgt']]).ids
-        max_len_src = max(max_len_src, len(src_ids))
-        max_len_tgt = max(max_len_tgt, len(tgt_ids))
+    max_len_src = max(len(tokenizer_src.encode(x['translation'][config['lang_src']]).ids) for x in ds_raw)
+    max_len_tgt = max(len(tokenizer_tgt.encode(x['translation'][config['lang_tgt']]).ids) for x in ds_raw)
 
     print(f'Max length of source sentence: {max_len_src}')
     print(f'Max length of target sentence: {max_len_tgt}')
@@ -223,6 +216,8 @@ def train_model(config):
             encoder_mask = batch['encoder_mask'].to(device)  # (B, 1, 1, seq_len)
             decoder_mask = batch['decoder_mask'].to(device)  # (B, 1, seq_len, seq_len)
 
+            optimizer.zero_grad()
+
             # Run the tensors through the encoder, decoder and the projection layer
             encoder_output = model.encode(encoder_input, encoder_mask)  # (B, seq_len, d_model)
             decoder_output = model.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)  # (B, seq_len, d_model)
@@ -232,7 +227,8 @@ def train_model(config):
             label = batch['label'].to(device)  # (B, seq_len)
 
             # Compute the loss using a simple cross entropy
-            loss = loss_fn(proj_output.view(-1, proj_output.shape[-1]), label.view(-1))
+            # (B, seq_len, vocab_size) -> (B, vocab_size, seq_len), (B, seq_len)
+            loss = loss_fn(proj_output.transpose(1, 2), label)
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
 
             # Log the loss
@@ -244,7 +240,6 @@ def train_model(config):
 
             # Update the weights
             optimizer.step()
-            optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
 
