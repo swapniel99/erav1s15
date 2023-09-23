@@ -120,12 +120,10 @@ class Model(LightningModule):
         }
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=os.cpu_count(),
-                          pin_memory=True, multiprocessing_context='spawn')
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=os.cpu_count())
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=os.cpu_count(),
-                          pin_memory=True, multiprocessing_context='spawn')
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=os.cpu_count())
 
     def predict_dataloader(self) -> DataLoader:
         return self.val_dataloader()
