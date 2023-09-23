@@ -11,6 +11,8 @@ import utils
 from .vanilla import Transformer
 from dataset import BilingualDataset
 
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
 
 class Model(LightningModule):
     def __init__(self, max_seq_len: int = 350, src_lang: str = 'en', tgt_lang: str = 'it', label_smoothing: float = 0.1,
