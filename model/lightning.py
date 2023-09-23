@@ -13,12 +13,13 @@ from dataset import BilingualDataset
 
 
 class Model(LightningModule):
-    def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', label_smoothing: float = 0.1, batch_size: int = 2048,
-                 learning_rate: float = 1e-4, enable_gc='batch'):
+    def __init__(self, max_seq_len: int = 350, src_lang: str = 'en', tgt_lang: str = 'it', label_smoothing: float = 0.1,
+                 batch_size: int = 2048, learning_rate: float = 1e-4, enable_gc='batch'):
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
         self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+        self.max_seq_len = max_seq_len
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
         self.src_tokenizer = None
@@ -79,7 +80,8 @@ class Model(LightningModule):
             ds_raw = load_from_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
             self.src_tokenizer = utils.get_or_build_tokenizer(f'tokenizer_{self.src_lang}.json', ds_raw, self.src_lang)
             self.tgt_tokenizer = utils.get_or_build_tokenizer(f'tokenizer_{self.tgt_lang}.json', ds_raw, self.tgt_lang)
-            self.transformer = Transformer(self.src_tokenizer.get_vocab_size(), self.tgt_tokenizer.get_vocab_size())
+            self.transformer = Transformer(self.src_tokenizer.get_vocab_size(), self.tgt_tokenizer.get_vocab_size(),
+                                           self.max_seq_len)
             self.criterion.ignore_index = self.tgt_tokenizer.token_to_id('[PAD]')
 
             # Keep 90% for training, 10% for validation
@@ -90,9 +92,9 @@ class Model(LightningModule):
                                                     generator=torch.Generator().manual_seed(42))
 
             self.train_ds = BilingualDataset(train_ds_raw, self.src_tokenizer, self.tgt_tokenizer, self.src_lang,
-                                             self.tgt_lang,  self.hparams.seq_len)
+                                             self.tgt_lang,  self.max_seq_len)
             self.val_ds = BilingualDataset(val_ds_raw, self.src_tokenizer, self.tgt_tokenizer, self.src_lang,
-                                           self.tgt_lang, self.hparams.seq_len)
+                                           self.tgt_lang, self.max_seq_len)
 
     def configure_optimizers(self):
         # Effective LR and batch size are different in DDP
