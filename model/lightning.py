@@ -112,7 +112,8 @@ class Model(LightningModule):
                           pin_memory=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_ds, batch_size=1, shuffle=False, num_workers=os.cpu_count(), pin_memory=True)
+        return DataLoader(self.val_ds, batch_size=self.hparams.batch_size, shuffle=False, num_workers=os.cpu_count(),
+                          pin_memory=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.val_dataloader()
