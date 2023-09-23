@@ -1,4 +1,4 @@
-from model import Transformer
+from model.vanilla import Transformer
 from dataset import BilingualDataset
 from config import get_config, get_weights_file_path
 
