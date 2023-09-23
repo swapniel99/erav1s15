@@ -11,7 +11,7 @@ import utils
 from .vanilla import Transformer
 from dataset import BilingualDataset
 
-os.environ["TOKENIZERS_PARALLELISM"] = "true"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class Model(LightningModule):
