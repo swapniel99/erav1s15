@@ -20,7 +20,7 @@ class Model(LightningModule):
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
-        self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+        self.criterion = None
         self.max_seq_len = max_seq_len
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
@@ -28,6 +28,7 @@ class Model(LightningModule):
         self.tgt_tokenizer = None
         self.train_ds = None
         self.val_ds = None
+        self.label_smoothing = label_smoothing
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.enable_gc = enable_gc
@@ -88,7 +89,8 @@ class Model(LightningModule):
             self.tgt_tokenizer = utils.get_or_build_tokenizer(f'tokenizer_{self.tgt_lang}.json', ds_raw, self.tgt_lang)
             self.transformer = Transformer(self.src_tokenizer.get_vocab_size(), self.tgt_tokenizer.get_vocab_size(),
                                            self.max_seq_len)
-            self.criterion.ignore_index = self.tgt_tokenizer.token_to_id('[PAD]')
+            self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
+                                                 ignore_index=self.tgt_tokenizer.token_to_id('[PAD]'))
 
             # Keep 90% for training, 10% for validation
             train_ds_size = int(0.9 * len(ds_raw))
