@@ -33,8 +33,17 @@ class Model(LightningModule):
         self.my_train_loss = MeanMetric()
         self.my_val_loss = MeanMetric()
 
-    def forward(self, encoder_input, encoder_mask, decoder_input, decoder_mask):
-        return self.transformer.forward(encoder_input, encoder_mask, decoder_input, decoder_mask)
+    def encode(self, *args):
+        return self.transformer.encode(*args)
+
+    def decode(self, *args):
+        return self.transformer.decode(*args)
+
+    def project(self, *args):
+        return self.transformer.project(*args)
+
+    def forward(self, *args):
+        return self.transformer.forward(*args)
 
     def common_forward(self, batch):
         encoder_input = batch['encoder_input']  # (B, seq_len)
