@@ -108,11 +108,11 @@ class Model(LightningModule):
         return optim.Adam(self.parameters(), lr=effective_lr, eps=1e-9)
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_ds, batch_size=self.hparams.batch_size, shuffle=True, num_workers=os.cpu_count(),
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=os.cpu_count(),
                           pin_memory=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_ds, batch_size=self.hparams.batch_size, shuffle=False, num_workers=os.cpu_count(),
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=os.cpu_count(),
                           pin_memory=True)
 
     def predict_dataloader(self) -> DataLoader:
