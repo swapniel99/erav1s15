@@ -68,8 +68,11 @@ class Model(LightningModule):
         return self.common_forward(batch)
 
     def prepare_data(self) -> None:
-        ds_raw = load_dataset('opus_books', f"{self.src_lang}-{self.tgt_lang}", split='train')
-        ds_raw.save_to_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
+        try:
+            ds_raw = load_from_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
+        except FileNotFoundError:
+            ds_raw = load_dataset('opus_books', f"{self.src_lang}-{self.tgt_lang}", split='train')
+            ds_raw.save_to_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
 
         # Build tokenizers
         utils.get_or_build_tokenizer(f'tokenizer_{self.src_lang}.json', ds_raw, self.src_lang)
