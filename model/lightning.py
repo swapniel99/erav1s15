@@ -68,7 +68,7 @@ class Model(LightningModule):
         return self.common_forward(batch)
 
     def prepare_data(self) -> None:
-        ds_raw = load_dataset('opus_books', f"{self.src_lang}-{self.tgt_lang}", split='train', cache_dir='../data')
+        ds_raw = load_dataset('opus_books', f"{self.src_lang}-{self.tgt_lang}", split='train')
         ds_raw.save_to_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
 
         # Build tokenizers
