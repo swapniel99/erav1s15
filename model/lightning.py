@@ -71,6 +71,7 @@ class Model(LightningModule):
         try:
             ds_raw = load_from_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
         except FileNotFoundError:
+            print("Dataset not found, downloading it...")
             ds_raw = load_dataset('opus_books', f"{self.src_lang}-{self.tgt_lang}", split='train')
             ds_raw.save_to_disk(f'../data/opus_books/{self.src_lang}-{self.tgt_lang}')
 
