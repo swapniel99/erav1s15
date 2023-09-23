@@ -11,7 +11,7 @@ import utils
 from .vanilla import Transformer
 from dataset import BilingualDataset
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 
 class Model(LightningModule):
@@ -120,10 +120,12 @@ class Model(LightningModule):
         }
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=os.cpu_count())
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=os.cpu_count(),
+                          pin_memory=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=os.cpu_count())
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=os.cpu_count(),
+                          pin_memory=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.val_dataloader()
