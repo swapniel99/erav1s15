@@ -98,7 +98,7 @@ class Model(LightningModule):
 
     def configure_optimizers(self):
         # Effective LR and batch size are different in DDP
-        effective_lr = self.learning_rate * self.device_count
+        effective_lr = self.learning_rate * utils.DEVICE_COUNT
         return optim.Adam(self.parameters(), lr=effective_lr, eps=1e-9)
 
     def train_dataloader(self) -> DataLoader:
