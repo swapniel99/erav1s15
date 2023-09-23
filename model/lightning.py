@@ -32,19 +32,8 @@ class Model(LightningModule):
         self.my_val_loss = MeanMetric()
         self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
-    def encode(self, src, src_mask):
-        return self.transformer.encode(src, src_mask)
-
-    def decode(self, encoder_output, src_mask, tgt, tgt_mask):
-        return self.transformer.decode(encoder_output, src_mask, tgt, tgt_mask)
-
-    def project(self, x):
-        return self.transformer.project(x)
-
     def forward(self, encoder_input, encoder_mask, decoder_input, decoder_mask):
-        encoder_output = self.encode(encoder_input, encoder_mask)
-        decoder_output = self.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)
-        return self.project(decoder_output)
+        return self.transformer.forward(encoder_input, encoder_mask, decoder_input, decoder_mask)
 
     def common_forward(self, batch):
         encoder_input = batch['encoder_input']  # (B, seq_len)

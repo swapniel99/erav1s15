@@ -253,3 +253,8 @@ class Transformer(nn.Module):
     def project(self, x):
         # (batch, seq_len, d_model) --> (batch, seq_len, vocab_size)
         return self.projection_layer(x)
+
+    def forward(self, encoder_input, encoder_mask, decoder_input, decoder_mask):
+        encoder_output = self.encode(encoder_input, encoder_mask)
+        decoder_output = self.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)
+        return self.project(decoder_output)
