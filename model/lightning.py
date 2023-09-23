@@ -106,7 +106,7 @@ class Model(LightningModule):
 
     def configure_optimizers(self):
         # Effective LR and batch size are different in DDP
-        effective_lr = self.learning_rate * utils.DEVICE_COUNT
+        effective_lr = self.learning_rate * utils.get_device()[1]
         optimizer = optim.Adam(self.parameters(), lr=effective_lr, eps=1e-9)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=1, verbose=True)
         return {
@@ -120,10 +120,12 @@ class Model(LightningModule):
         }
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=0, pin_memory=True)
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, num_workers=os.cpu_count(),
+                          pin_memory=True, multiprocessing_context='spawn')
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=0, pin_memory=True)
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, num_workers=os.cpu_count(),
+                          pin_memory=True, multiprocessing_context='spawn')
 
     def predict_dataloader(self) -> DataLoader:
         return self.val_dataloader()

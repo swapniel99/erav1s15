@@ -35,9 +35,6 @@ def get_device():
     return device, device_count
 
 
-DEVICE, DEVICE_COUNT = get_device()
-
-
 def get_all_sentences(ds, lang):
     for item in ds:
         yield item['translation'][lang]
