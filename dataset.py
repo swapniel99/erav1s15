@@ -21,8 +21,8 @@ class BilingualDataset(Dataset):
 
     @staticmethod
     def causal_mask(seq_len):
-        # (seq_len, seq_len)
-        return torch.tril(torch.ones(seq_len, seq_len, dtype=torch.int))
+        # (1, seq_len, seq_len)
+        return torch.tril(torch.ones(1, seq_len, seq_len, dtype=torch.int))
 
     def __getitem__(self, idx):
         src_tgt_pair = self.ds[idx]
@@ -83,7 +83,7 @@ class BilingualDataset(Dataset):
             "decoder_input": decoder_input,  # (seq_len)
             "encoder_mask": (encoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int(),  # (1, 1, seq_len)
             "decoder_mask": (decoder_input != self.pad_token).unsqueeze(0).int()  # (1, seq_len)
-                & self.causal_mask(decoder_input.shape[0]).unsqueeze(0),  # (1, seq_len, seq_len)
+                & self.causal_mask(decoder_input.shape[0]),  # (1, seq_len, seq_len)
             "label": label,  # (seq_len)
             "src_text": src_text,  # str
             "tgt_text": tgt_text  # str

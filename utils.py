@@ -124,25 +124,28 @@ def run_validation(model, val_dataloader, print_msg, writer=None, global_step=0,
                 print_msg('-' * console_width)
                 break
 
+    # Evaluate the character error rate
+    # Compute the char error rate
+    metric = torchmetrics.CharErrorRate()
+    cer = metric(predicted, expected)
+    print('validation cer', cer)
+
+    # Compute the word error rate
+    metric = torchmetrics.WordErrorRate()
+    wer = metric(predicted, expected)
+    print('validation wer', wer)
+
+    # Compute the BLEU metric
+    metric = torchmetrics.BLEUScore()
+    bleu = metric(predicted, expected)
+    print('validation BLEU', bleu)
+
     if writer:
-        # Evaluate the character error rate
-        # Compute the char error rate
-        metric = torchmetrics.CharErrorRate()
-        cer = metric(predicted, expected)
-        print('validation cer', cer)
         writer.add_scalar('validation cer', cer, global_step)
         writer.flush()
 
-        # Compute the word error rate
-        metric = torchmetrics.WordErrorRate()
-        wer = metric(predicted, expected)
-        print('validation wer', wer)
         writer.add_scalar('validation wer', wer, global_step)
         writer.flush()
 
-        # Compute the BLEU metric
-        metric = torchmetrics.BLEUScore()
-        bleu = metric(predicted, expected)
-        print('validation BLEU', bleu)
         writer.add_scalar('validation BLEU', bleu, global_step)
         writer.flush()
