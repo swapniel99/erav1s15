@@ -109,6 +109,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # Just apply the formula from the paper
         # (batch, h, seq_len, d_k) @ (batch, h, d_k, seq_len) --> (batch, h, seq_len, seq_len)
         attention_scores = (query @ key.transpose(-2, -1)) * (d_k ** -0.5)
+        del query, key
         if mask is not None:
             # Write a very low value (indicating -inf) to the positions where mask == 0
             _MASKING_VALUE = -3e4 if attention_scores.dtype == torch.float16 else -2e9
@@ -125,6 +126,8 @@ class MultiHeadAttentionBlock(nn.Module):
         key = self.w_k(k)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
         value = self.w_v(v)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
 
+        del q, k, v
+
         # (batch, seq_len, d_model) --> (batch, seq_len, h, d_k) --> (batch, h, seq_len, d_k)
         query = query.view(query.shape[0], query.shape[1], self.h, self.d_k).transpose(1, 2)
         key = key.view(key.shape[0], key.shape[1], self.h, self.d_k).transpose(1, 2)
@@ -132,6 +135,8 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # Calculate attention
         x, attention_scores = self.attention(query, key, value, mask, self.dropout)
+
+        del query, key, value
 
         # Combine all the heads together
         # (batch, h, seq_len, d_k) --> (batch, seq_len, h, d_k) --> (batch, seq_len, d_model)
@@ -254,10 +259,12 @@ class Transformer(nn.Module):
         return self.decoder(tgt, encoder_output, src_mask, tgt_mask)
 
     def project(self, x):
-        # (batch, seq_len, d_model) --> (batch, seq_len, vocab_size)
+        # (batch, seq_len, d_model) --> (batch, seq_len, tgt_vocab_size)
         return self.projection_layer(x)
 
     def forward(self, encoder_input, encoder_mask, decoder_input, decoder_mask):
         encoder_output = self.encode(encoder_input, encoder_mask)
+        del encoder_input
         decoder_output = self.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)
+        del encoder_output
         return self.project(decoder_output)

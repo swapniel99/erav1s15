@@ -41,17 +41,14 @@ class Model(LightningModule):
         return self.transformer.forward(*args)
 
     def common_forward(self, batch):
-        encoder_input = batch['encoder_input']  # (B, seq_len)
-        decoder_input = batch['decoder_input']  # (B, seq_len)
-        encoder_mask = batch['encoder_mask']  # (B, 1, 1, seq_len)
-        decoder_mask = batch['decoder_mask']  # (B, 1, seq_len, seq_len)
-
-        output = self.forward(encoder_input, encoder_mask, decoder_input, decoder_mask)  # (B, seq_len, vocab_size)
-        del encoder_input, encoder_mask, decoder_input, decoder_mask
-        return output
+        return self.forward(batch['encoder_input'],  # (B, seq_len)
+                            batch['decoder_input'],  # (B, seq_len)
+                            batch['encoder_mask'],  # (B, 1, 1, seq_len)
+                            batch['decoder_mask']  # (B, 1, seq_len, seq_len)
+                            )  # (B, seq_len, vocab_size)
 
     def common_step(self, batch):
-        output = self.common_forward(batch)
+        output = self.common_forward(batch)  # (B, seq_len, tgt_vocab_size)
         label = batch['label']  # (B, seq_len)
         loss = self.criterion(output.transpose(1, 2), label)
         del output, label
@@ -85,11 +82,11 @@ class Model(LightningModule):
             self.val_ds = BilingualDataset(val_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
                                            rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
                                            shuffle=False)
+            del train_ds_raw, val_ds_raw
 
             self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size())
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
-            del rd
 
     def configure_optimizers(self) -> dict:
         # Effective LR and batch size are different in DDP
