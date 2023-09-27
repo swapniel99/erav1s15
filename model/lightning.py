@@ -91,15 +91,24 @@ class Model(LightningModule):
     def configure_optimizers(self) -> dict:
         # Effective LR and batch size are different in DDP
         effective_lr = self.learning_rate * utils.get_device()[1]
-        optimizer = optim.Adam(self.parameters(), lr=effective_lr, eps=1e-9)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=1, verbose=True)
+
+        optimizer = optim.Adam(self.parameters(), lr=effective_lr/100, eps=1e-9)
+        scheduler = optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=effective_lr,
+            steps_per_epoch=(len(self.train_dataloader()) + self.device_count - 1) // self.device_count,
+            epochs=self.num_epochs,
+            pct_start=0.2,
+            div_factor=100,
+            three_phase=False,
+            final_div_factor=100,
+            anneal_strategy='linear'
+        )
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
                 "scheduler": scheduler,
-                "interval": "epoch",
-                "frequency": 1,
-                "monitor": "val_loss"
+                "interval": "step",
             }
         }
 
