@@ -12,7 +12,7 @@ from dataset import RawDataset, BilingualDataset
 
 class Model(LightningModule):
     def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', label_smoothing: float = 0.1,
-                 batch_size: int = 64, learning_rate: float = 1e-4, enable_gc='batch') -> None:
+                 batch_size: int = 64, learning_rate: float = 1e-3, enable_gc='batch') -> None:
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
@@ -57,13 +57,13 @@ class Model(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.common_step(batch)
         self.my_train_loss.update(loss, batch['label'].shape[0])
-        self.log(f"train_loss", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.common_step(batch)
         self.my_val_loss.update(loss, batch['label'].shape[0])
-        self.log(f"val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
