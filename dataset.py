@@ -66,6 +66,9 @@ class CustomSampler(Sampler):
             random.shuffle(self.batches)
         yield from (item for batch in self.batches for item in batch)
 
+    def __len__(self):
+        return self.len_dataset
+
 
 class BilingualDataset(Dataset):
     def __init__(self, ds_raw, src_lang, tgt_lang, src_tokenizer, tgt_tokenizer, batch_size=64, uniform_batches=False,
