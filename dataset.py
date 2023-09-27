@@ -1,5 +1,6 @@
 import torch
-from torch.utils.data import Dataset, random_split
+import random
+from torch.utils.data import Dataset, Sampler, random_split
 from datasets import load_dataset, load_from_disk
 from pathlib import Path
 
@@ -40,10 +41,7 @@ class RawDataset(object):
         self.src_tokenizer = get_or_build_tokenizer(f'tokenizer_{self.src_lang}.json', ds_raw, self.src_lang)
         self.tgt_tokenizer = get_or_build_tokenizer(f'tokenizer_{self.tgt_lang}.json', ds_raw, self.tgt_lang)
 
-    def split(self, train_split=0.9, seed=42):
-        # Keep 90% for training, 10% for validation
-        if train_split > 1:
-            train_split *= 0.01
+    def split(self, train_split: float = 0.9, seed: int = 42):
         train_ds_size = int(train_split * len(self.dataset))
         val_ds_size = len(self.dataset) - train_ds_size
 
@@ -52,8 +50,26 @@ class RawDataset(object):
         return train_ds_raw, val_ds_raw
 
 
+class CustomSampler(Sampler):
+    def __init__(self, dataset, batch_size, shuffle=True):
+        super(CustomSampler, self).__init__(dataset)
+        self.len_dataset = len(dataset)
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        n_batches = self.len_dataset // self.batch_size
+        self.batches = [list(range(i * self.batch_size, (i + 1) * self.batch_size)) for i in range(n_batches)]
+        if self.len_dataset % self.batch_size != 0:
+            self.batches.append(list(range(n_batches * self.batch_size, self.len_dataset)))
+
+    def __iter__(self):
+        if self.shuffle:
+            random.shuffle(self.batches)
+        yield from (item for batch in self.batches for item in batch)
+
+
 class BilingualDataset(Dataset):
-    def __init__(self, ds_raw, src_lang, tgt_lang, src_tokenizer, tgt_tokenizer, max_src_len=150, src_tgt_diff=10):
+    def __init__(self, ds_raw, src_lang, tgt_lang, src_tokenizer, tgt_tokenizer, batch_size=64, uniform_batches=False,
+                 shuffle=False, max_src_len=150, src_tgt_diff=10):
         super(BilingualDataset, self).__init__()
         self.src_tokenizer = src_tokenizer
         self.tgt_tokenizer = tgt_tokenizer
@@ -70,6 +86,10 @@ class BilingualDataset(Dataset):
                 self.dataset.append({'src_text': src_text, 'tgt_text': tgt_text, 'src_tokens': src_tokens,
                                      'tgt_tokens': tgt_tokens})
         del ds_raw
+
+        if uniform_batches:
+            self.dataset.sort(key=lambda x: len(x['src_tokens']))
+        self.sampler = CustomSampler(self.dataset, batch_size, shuffle)
 
         self.sos_token = self.tgt_tokenizer.token_to_id('[SOS]')
         self.eos_token = self.tgt_tokenizer.token_to_id('[EOS]')

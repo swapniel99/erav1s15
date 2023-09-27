@@ -80,9 +80,11 @@ class Model(LightningModule):
             rd = RawDataset('opus_books', self.src_lang, self.tgt_lang)
             train_ds_raw, val_ds_raw = rd.split(0.9)
             self.train_ds = BilingualDataset(train_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
-                                             rd.tgt_tokenizer)
+                                             rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
+                                             shuffle=True)
             self.val_ds = BilingualDataset(val_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
-                                           rd.tgt_tokenizer)
+                                           rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
+                                           shuffle=False)
 
             self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size())
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
@@ -106,11 +108,11 @@ class Model(LightningModule):
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.train_ds, batch_size=self.batch_size, collate_fn=self.train_ds.collate_fn,
-                          shuffle=True, num_workers=os.cpu_count(), pin_memory=True)
+                          sampler=self.train_ds.sampler, num_workers=os.cpu_count(), pin_memory=True)
 
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.val_ds, batch_size=self.batch_size, collate_fn=self.val_ds.collate_fn,
-                          shuffle=False, num_workers=os.cpu_count(), pin_memory=True)
+                          sampler=self.val_ds.sampler, num_workers=os.cpu_count(), pin_memory=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.val_dataloader()
