@@ -11,13 +11,13 @@ class LayerNormalization(nn.Module):
         self.bias = nn.Parameter(torch.zeros(d_model))  # bias is a learnable parameter
 
     def forward(self, x):
-        # x: (batch, seq_len, hidden_size)
+        # x: (batch, seq_len, d_model)
         # Keep the dimension for broadcasting
         mean = x.mean(dim=-1, keepdim=True)  # (batch, seq_len, 1)
         # Keep the dimension for broadcasting
         std = x.std(dim=-1, keepdim=True)  # (batch, seq_len, 1)
         # eps is to prevent dividing by zero or when std is very small
-        # (batch, seq_len, hidden_size)
+        # (batch, seq_len, d_model)
         return self.alpha * (x - mean) / (std + self.eps) + self.bias
 
 
@@ -107,43 +107,43 @@ class MultiHeadAttentionBlock(nn.Module):
     def attention(query, key, value, mask, dropout: nn.Dropout):
         d_k = query.shape[-1]
         # Just apply the formula from the paper
-        # (batch, h, seq_len, d_k) @ (batch, h, d_k, seq_len) --> (batch, h, seq_len, seq_len)
+        # (batch, h, seq_len1, d_k) @ (batch, h, d_k, seq_len2) --> (batch, h, seq_len1, seq_len2)
         attention_scores = (query @ key.transpose(-2, -1)) * (d_k ** -0.5)
         del query, key
         if mask is not None:
             # Write a very low value (indicating -inf) to the positions where mask == 0
             _MASKING_VALUE = -3e4 if attention_scores.dtype == torch.float16 else -2e9
             attention_scores.masked_fill_(mask == 0, _MASKING_VALUE)
-        attention_scores = attention_scores.softmax(dim=-1)  # (batch, h, seq_len, seq_len) # Apply softmax
+        attention_scores = attention_scores.softmax(dim=-1)  # (batch, h, seq_len1, seq_len2) # Apply softmax
         if dropout is not None:
             attention_scores = dropout(attention_scores)
-        # (batch, h, seq_len, seq_len) @ (batch, h, seq_len, d_k)--> (batch, h, seq_len, d_k)
+        # (batch, h, seq_len1, seq_len2) @ (batch, h, seq_len2, d_k)--> (batch, h, seq_len1, d_k)
         # return attention scores which can be used for visualization
         return attention_scores @ value, attention_scores
 
     def forward(self, q, k, v, mask, return_attention=False):
-        query = self.w_q(q)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
-        key = self.w_k(k)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
-        value = self.w_v(v)  # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
+        query = self.w_q(q)  # (batch, seq_len1, d_model)
+        key = self.w_k(k)  # (batch, seq_len2, d_model)
+        value = self.w_v(v)  # (batch, seq_len2, d_model)
 
         del q, k, v
 
         # (batch, seq_len, d_model) --> (batch, seq_len, h, d_k) --> (batch, h, seq_len, d_k)
-        query = query.view(query.shape[0], query.shape[1], self.h, self.d_k).transpose(1, 2)
-        key = key.view(key.shape[0], key.shape[1], self.h, self.d_k).transpose(1, 2)
-        value = value.view(value.shape[0], value.shape[1], self.h, self.d_k).transpose(1, 2)
+        query = query.view(query.shape[0], query.shape[1], self.h, self.d_k).transpose(1, 2)  # (batch, h, seq_len1, d_k)
+        key = key.view(key.shape[0], key.shape[1], self.h, self.d_k).transpose(1, 2)  # (batch, h, seq_len2, d_k)
+        value = value.view(value.shape[0], value.shape[1], self.h, self.d_k).transpose(1, 2)  # (batch, h, seq_len2, d_k)
 
         # Calculate attention
-        x, attention_scores = self.attention(query, key, value, mask, self.dropout)
+        x, attention_scores = self.attention(query, key, value, mask, self.dropout)  # (batch, h, seq_len1, d_k), (batch, h, seq_len1, seq_len2)
 
         del query, key, value
 
         # Combine all the heads together
-        # (batch, h, seq_len, d_k) --> (batch, seq_len, h, d_k) --> (batch, seq_len, d_model)
+        # (batch, h, seq_len1, d_k) --> (batch, seq_len1, h, d_k) --> (batch, seq_len1, d_model)
         x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)  # d_model = h * d_k
 
         # Multiply by Wo
-        # (batch, seq_len, d_model) --> (batch, seq_len, d_model)
+        # (batch, seq_len1, d_model)
         x = self.w_o(x)
         if return_attention:
             return x, attention_scores
@@ -159,7 +159,8 @@ class EncoderBlock(nn.Module):
         self.residual_connections = nn.ModuleList(ResidualConnection(d_model, dropout) for _ in range(2))
 
     def forward(self, x, src_mask):
-        # (batch, seq_len, d_model)
+        # x: (batch, e_seq_len, d_model)
+        # src_mask: (batch, 1, 1, e_seq_len)
         x = self.residual_connections[0](x, lambda inp: self.self_attention_block(inp, inp, inp, src_mask))
         x = self.residual_connections[1](x, self.feed_forward_block)
         return x
@@ -174,7 +175,8 @@ class Encoder(nn.Module):
             self.layers.append(EncoderBlock(d_model, h, d_ff, dropout))
 
     def forward(self, x, src_mask):
-        # (batch, seq_len, d_model)
+        # x: (batch, e_seq_len, d_model)
+        # src_mask: (batch, 1, 1, e_seq_len)
         x = self.norm(x)
         for layer in self.layers:
             x = layer(x, src_mask)
@@ -190,7 +192,10 @@ class DecoderBlock(nn.Module):
         self.residual_connections = nn.ModuleList(ResidualConnection(d_model, dropout) for _ in range(3))
 
     def forward(self, x, encoder_output, src_mask, tgt_mask):
-        # (batch, seq_len, d_model)
+        # x: (batch, d_seq_len, d_model)
+        # encoder_output: (batch, e_seq_len, d_model)
+        # src_mask: (batch, 1, 1, e_seq_len)
+        # tgt_mask: (batch, 1, d_seq_len, d_seq_len)
         x = self.residual_connections[0](x, lambda inp: self.self_attention_block(inp, inp, inp, tgt_mask))
         x = self.residual_connections[1](x, lambda inp: self.cross_attention_block(inp, encoder_output, encoder_output,
                                                                                    src_mask))
@@ -207,7 +212,10 @@ class Decoder(nn.Module):
             self.layers.append(DecoderBlock(d_model, h, d_ff, dropout))
 
     def forward(self, x, encoder_output, src_mask, tgt_mask):
-        # (batch, seq_len, d_model)
+        # x: (batch, d_seq_len, d_model)
+        # encoder_output: (batch, e_seq_len, d_model)
+        # src_mask: (batch, 1, 1, e_seq_len)
+        # tgt_mask: (batch, 1, d_seq_len, d_seq_len)
         x = self.norm(x)
         for layer in self.layers:
             x = layer(x, encoder_output, src_mask, tgt_mask)
@@ -220,7 +228,7 @@ class ProjectionLayer(nn.Module):
         self.proj = nn.Linear(d_model, vocab_size)
 
     def forward(self, x):
-        # (batch, seq_len, d_model) --> (batch, seq_len, vocab_size)
+        # (batch, d_seq_len, d_model) --> (batch, d_seq_len, tgt_vocab_size)
         return self.proj(x)
 
 
@@ -247,19 +255,23 @@ class Transformer(nn.Module):
         self.projection_layer = ProjectionLayer(d_model, tgt_vocab_size)
 
     def encode(self, src, src_mask):
-        # (batch, seq_len) -> (batch, seq_len, d_model)
+        # src: (batch, e_seq_len)
+        # src_mask: (batch, 1, 1, e_seq_len)
         src = self.src_embed(src)
         src = self.pos_embed(src)
-        return self.encoder(src, src_mask)
+        return self.encoder(src, src_mask)  # (batch, e_seq_len, d_model)
 
     def decode(self, encoder_output, src_mask, tgt, tgt_mask):
-        # (batch, seq_len) -> (batch, seq_len, d_model)
+        # encoder_output: (batch, e_seq_len, d_model)
+        # src_mask: (batch, 1, 1, e_seq_len)
+        # tgt: (batch, d_seq_len)
+        # tgt_mask: (batch, 1, d_seq_len, d_seq_len)
         tgt = self.tgt_embed(tgt)
         tgt = self.pos_embed(tgt)
-        return self.decoder(tgt, encoder_output, src_mask, tgt_mask)
+        return self.decoder(tgt, encoder_output, src_mask, tgt_mask)  # (batch, d_seq_len, d_model)
 
     def project(self, x):
-        # (batch, seq_len, d_model) --> (batch, seq_len, tgt_vocab_size)
+        # (batch, d_seq_len, d_model) --> (batch, d_seq_len, tgt_vocab_size)
         return self.projection_layer(x)
 
     def forward(self, encoder_input, encoder_mask, decoder_input, decoder_mask):
