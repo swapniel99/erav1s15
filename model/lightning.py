@@ -12,7 +12,7 @@ from dataset import RawDataset, BilingualDataset
 
 class Model(LightningModule):
     def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', label_smoothing: float = 0.1,
-                 batch_size: int = 64, learning_rate: float = 1e-3, enable_gc='batch') -> None:
+                 batch_size: int = 64, learning_rate: float = 1e-3, enable_gc='batch', num_epochs=20) -> None:
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
@@ -25,6 +25,7 @@ class Model(LightningModule):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.enable_gc = enable_gc
+        self.num_epochs = num_epochs
         self.my_train_loss = MeanMetric()
         self.my_val_loss = MeanMetric()
 
@@ -98,7 +99,7 @@ class Model(LightningModule):
             optimizer,
             max_lr=effective_lr,
             steps_per_epoch=(len(self.train_dataloader()) + device_count - 1) // device_count,
-            epochs=self.hparams.num_epochs,
+            epochs=self.num_epochs,
             pct_start=0.2,
             div_factor=100,
             three_phase=False,
