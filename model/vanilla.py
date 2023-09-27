@@ -49,7 +49,7 @@ class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, max_seq_len: int, dropout: float) -> None:
         super(PositionalEncoding, self).__init__()
         self.d_model = d_model
-        self.seq_len = max_seq_len
+        self.max_seq_len = max_seq_len
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
         # Create a matrix of shape (max_seq_len, d_model)
         pe = torch.zeros(max_seq_len, d_model)
@@ -67,6 +67,8 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x):
+        if x.shape[1] > self.max_seq_len:
+            raise ValueError(f"Expected sequence length {x.shape[1]} <= {self.max_seq_len} in Position Encoder.")
         # (batch, seq_len, d_model)
         x = x + self.pe[:, :x.shape[1], :]
         return self.dropout(x)
