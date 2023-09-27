@@ -87,6 +87,7 @@ class Model(LightningModule):
             self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size())
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
+            del rd
 
     def configure_optimizers(self) -> dict:
         # Effective LR and batch size are different in DDP

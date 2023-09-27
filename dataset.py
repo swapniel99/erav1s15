@@ -69,6 +69,7 @@ class BilingualDataset(Dataset):
             if len(src_tokens) <= self.max_src_len and len(tgt_tokens) <= len(src_tokens) + self.src_tgt_diff:
                 self.dataset.append({'src_text': src_text, 'tgt_text': tgt_text, 'src_tokens': src_tokens,
                                      'tgt_tokens': tgt_tokens})
+        del ds_raw
 
         self.sos_token = self.tgt_tokenizer.token_to_id('[SOS]')
         self.eos_token = self.tgt_tokenizer.token_to_id('[EOS]')
