@@ -111,8 +111,8 @@ class Model(LightningModule):
                           sampler=self.train_ds.sampler, num_workers=os.cpu_count(), pin_memory=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_ds, batch_size=self.batch_size, collate_fn=self.val_ds.collate_fn,
-                          sampler=self.val_ds.sampler, num_workers=os.cpu_count(), pin_memory=True)
+        return DataLoader(self.val_ds, batch_size=self.batch_size, collate_fn=self.val_ds.collate_fn, shuffle=False,
+                          num_workers=os.cpu_count(), pin_memory=True)
 
     def predict_dataloader(self) -> DataLoader:
         return self.val_dataloader()
