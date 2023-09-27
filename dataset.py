@@ -2,27 +2,8 @@ import torch
 import random
 from torch.utils.data import Dataset, Sampler, random_split
 from datasets import load_dataset, load_from_disk
-from pathlib import Path
 
-# Huggingface datasets and tokenizers
-from tokenizers import Tokenizer
-from tokenizers.models import WordLevel
-from tokenizers.trainers import WordLevelTrainer
-from tokenizers.pre_tokenizers import Whitespace
-
-
-def get_or_build_tokenizer(file_path, ds, lang):
-    tokenizer_path = Path(file_path)
-    if not Path.exists(tokenizer_path):
-        # Most code taken from: https://huggingface.co/docs/tokenizers/quicktour
-        tokenizer = Tokenizer(WordLevel(unk_token='[UNK]'))
-        tokenizer.pre_tokenizer = Whitespace()
-        trainer = WordLevelTrainer(special_tokens=['[UNK]', '[PAD]', '[SOS]', '[EOS]'], min_frequency=2)
-        tokenizer.train_from_iterator((item['translation'][lang] for item in ds), trainer=trainer)
-        tokenizer.save(str(tokenizer_path))
-    else:
-        tokenizer = Tokenizer.from_file(str(tokenizer_path))
-    return tokenizer
+from utils import get_or_build_tokenizer, causal_mask
 
 
 class RawDataset(object):
@@ -126,15 +107,9 @@ class BilingualDataset(Dataset):
             "tgt_text": tgt_text
         }
 
-    @staticmethod
-    def causal_mask(seq_len):
-        # (seq_len, seq_len)
-        return torch.tril(torch.ones(seq_len, seq_len, dtype=torch.int))
-
     def collate_fn(self, batch):
         max_src_len = max(len(item['encoder_input']) for item in batch)
         max_tgt_len = max(len(item['decoder_input']) for item in batch)
-        # max_seq_len = max(max_src_len, max_tgt_len)
 
         encoder_input = list()
         decoder_input = list()
@@ -160,7 +135,7 @@ class BilingualDataset(Dataset):
             "decoder_input": decoder_input,  # (B, d_seq_len)
             "encoder_mask": (encoder_input != self.pad_token).unsqueeze(1).unsqueeze(1).int(),  # (B, 1, 1, e_seq_len)
             "decoder_mask": ((decoder_input != self.pad_token).unsqueeze(1).int()
-                             & self.causal_mask(decoder_input.shape[1]).unsqueeze(0)).unsqueeze(1),  # (B, 1, d_seq_len, d_seq_len)
+                & causal_mask(decoder_input.shape[1]).unsqueeze(0)).unsqueeze(1),  # (B, 1, d_seq_len, d_seq_len)
             "label": label,  # (B, d_seq_len)
             "src_text": src_text,
             "tgt_text": tgt_text

@@ -1,8 +1,13 @@
 import os
 import torch
 import torchmetrics
+from pathlib import Path
 
-from dataset import BilingualDataset
+# Huggingface datasets and tokenizers
+from tokenizers import Tokenizer
+from tokenizers.models import WordLevel
+from tokenizers.trainers import WordLevelTrainer
+from tokenizers.pre_tokenizers import Whitespace
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
@@ -20,6 +25,25 @@ def get_device():
     return device, device_count
 
 
+def get_or_build_tokenizer(file_path, ds, lang):
+    tokenizer_path = Path(file_path)
+    if not Path.exists(tokenizer_path):
+        # Most code taken from: https://huggingface.co/docs/tokenizers/quicktour
+        tokenizer = Tokenizer(WordLevel(unk_token='[UNK]'))
+        tokenizer.pre_tokenizer = Whitespace()
+        trainer = WordLevelTrainer(special_tokens=['[UNK]', '[PAD]', '[SOS]', '[EOS]'], min_frequency=2)
+        tokenizer.train_from_iterator((item['translation'][lang] for item in ds), trainer=trainer)
+        tokenizer.save(str(tokenizer_path))
+    else:
+        tokenizer = Tokenizer.from_file(str(tokenizer_path))
+    return tokenizer
+
+
+def causal_mask(seq_len):
+    # (seq_len, seq_len)
+    return torch.tril(torch.ones(seq_len, seq_len, dtype=torch.int))
+
+
 def greedy_decode(model, source, source_mask, device='cpu'):
     tokenizer_tgt = model.tgt_tokenizer
     sos_idx = tokenizer_tgt.token_to_id('[SOS]')
@@ -34,7 +58,7 @@ def greedy_decode(model, source, source_mask, device='cpu'):
             break
 
         # build mask for target
-        decoder_mask = BilingualDataset.causal_mask(decoder_input.shape[1]).type_as(source_mask).to(device)
+        decoder_mask = causal_mask(decoder_input.shape[1]).type_as(source_mask).to(device)
 
         # calculate output
         out = model.decode(encoder_output, source_mask, decoder_input, decoder_mask)
