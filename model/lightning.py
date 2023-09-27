@@ -42,8 +42,8 @@ class Model(LightningModule):
 
     def common_forward(self, batch):
         return self.forward(batch['encoder_input'],  # (B, seq_len)
-                            batch['decoder_input'],  # (B, seq_len)
                             batch['encoder_mask'],  # (B, 1, 1, seq_len)
+                            batch['decoder_input'],  # (B, seq_len)
                             batch['decoder_mask']  # (B, 1, seq_len, seq_len)
                             )  # (B, seq_len, vocab_size)
 
