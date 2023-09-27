@@ -110,8 +110,7 @@ class BilingualDataset(Dataset):
     def collate_fn(self, batch):
         max_src_len = max(len(item['encoder_input']) for item in batch)
         max_tgt_len = max(len(item['decoder_input']) for item in batch)
-        # max_src_len = max(max_src_len, max_tgt_len)
-        # max_tgt_len = max_src_len
+        max_seq_len = max(max_src_len, max_tgt_len)
 
         encoder_input = list()
         decoder_input = list()
@@ -120,9 +119,9 @@ class BilingualDataset(Dataset):
         tgt_text = list()
 
         for item in batch:
-            src_pad_len = max_src_len - len(item['encoder_input'])
+            src_pad_len = max_seq_len - len(item['encoder_input'])
             encoder_input.append(torch.tensor(item['encoder_input'] + self.pad_tokens[:src_pad_len], dtype=torch.int64))
-            tgt_pad_len = max_tgt_len - len(item['decoder_input'])
+            tgt_pad_len = max_seq_len - len(item['decoder_input'])
             decoder_input.append(torch.tensor(item['decoder_input'] + self.pad_tokens[:tgt_pad_len], dtype=torch.int64))
             label.append(torch.tensor(item['label'] + self.pad_tokens[:tgt_pad_len], dtype=torch.int64))
             src_text.append(item['src_text'])
