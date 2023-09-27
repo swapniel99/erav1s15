@@ -57,13 +57,13 @@ class Model(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.common_step(batch)
         self.my_train_loss.update(loss, batch['label'].shape[0])
-        self.log(f"train_loss", self.my_train_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"train_loss", self.my_train_loss.compute(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.common_step(batch)
         self.my_val_loss.update(loss, batch['label'].shape[0])
-        self.log(f"val_loss", self.my_val_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"val_loss", self.my_val_loss.compute(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
