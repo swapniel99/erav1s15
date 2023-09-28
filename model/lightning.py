@@ -87,10 +87,10 @@ class Model(LightningModule):
             train_ds_raw, val_ds_raw = rd.split(0.9)
             self.train_ds = BilingualDataset(train_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
                                              rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
-                                             shuffle=True)
+                                             shuffle=True, max_src_len=350, src_tgt_diff=50)
             self.val_ds = BilingualDataset(val_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
                                            rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
-                                           shuffle=False)
+                                           shuffle=False, max_src_len=350, src_tgt_diff=50)
             del train_ds_raw, val_ds_raw
 
             self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
