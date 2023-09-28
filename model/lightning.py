@@ -20,6 +20,8 @@ class Model(LightningModule):
         self.criterion = None
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
+        self.src_tokenizer = None
+        self.tgt_tokenizer = None
         self.train_ds = None
         self.val_ds = None
         self.param_sharing = param_sharing
@@ -82,6 +84,9 @@ class Model(LightningModule):
     def setup(self, stage: str) -> None:
         if stage == 'fit':
             rd = RawDataset('opus_books', self.src_lang, self.tgt_lang)
+            self.src_tokenizer = rd.src_tokenizer
+            self.tgt_tokenizer = rd.tgt_tokenizer
+
             train_ds_raw, val_ds_raw = rd.split(0.9)
             self.train_ds = BilingualDataset(train_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
                                              rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
