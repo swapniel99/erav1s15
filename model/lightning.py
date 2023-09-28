@@ -79,7 +79,7 @@ class Model(LightningModule):
         RawDataset('opus_books', self.src_lang, self.tgt_lang)
 
     def setup(self, stage: str) -> None:
-        if stage == 'fit':
+        if stage == 'fit' and self.transformer is None:
             rd = RawDataset('opus_books', self.src_lang, self.tgt_lang)
             self.src_tokenizer = rd.src_tokenizer
             self.tgt_tokenizer = rd.tgt_tokenizer
