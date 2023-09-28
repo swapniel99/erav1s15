@@ -166,9 +166,29 @@ class EncoderBlock(nn.Module):
         return x
 
 
+class DecoderBlock(nn.Module):
+    def __init__(self, d_model: int, h: int, d_ff: int, dropout: float) -> None:
+        super(DecoderBlock, self).__init__()
+        self.self_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
+        self.cross_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
+        self.feed_forward_block = FeedForwardBlock(d_model, d_ff, dropout)
+        self.residual_connections = nn.ModuleList(ResidualConnection(d_model, dropout) for _ in range(3))
+
+    def forward(self, x, encoder_output, src_mask, tgt_mask):
+        # x: (batch, d_seq_len, d_model)
+        # encoder_output: (batch, e_seq_len, d_model)
+        # src_mask: (batch, 1, 1, e_seq_len)
+        # tgt_mask: (batch, 1, d_seq_len, d_seq_len)
+        x = self.residual_connections[0](x, lambda inp: self.self_attention_block(inp, inp, inp, tgt_mask))
+        x = self.residual_connections[1](x, lambda inp: self.cross_attention_block(inp, encoder_output, encoder_output,
+                                                                                   src_mask))
+        x = self.residual_connections[2](x, self.feed_forward_block)
+        return x
+
+
 class XCoder(nn.Module):
-    def __init__(self, XBcoderBlock: type, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True,
-                 param_sharing=None) -> None:
+    def __init__(self, XBcoderBlock: type, d_model: int, N: int, h: int, d_ff: int, dropout: float, param_sharing=None,
+                 first_norm=True) -> None:
         super(XCoder, self).__init__()
         self.norm = LayerNormalization(d_model) if first_norm else nn.Identity()
         self.layers = nn.ModuleList()
@@ -203,9 +223,9 @@ class XCoder(nn.Module):
 
 
 class Encoder(XCoder):
-    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True,
-                 param_sharing=None) -> None:
-        super(Encoder, self).__init__(EncoderBlock, d_model, N, h, d_ff, dropout, first_norm, param_sharing)
+    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, param_sharing=None,
+                 first_norm=True) -> None:
+        super(Encoder, self).__init__(EncoderBlock, d_model, N, h, d_ff, dropout, param_sharing, first_norm)
 
     def forward(self, x, src_mask):
         # x: (batch, e_seq_len, d_model)
@@ -216,30 +236,10 @@ class Encoder(XCoder):
         return x
 
 
-class DecoderBlock(nn.Module):
-    def __init__(self, d_model: int, h: int, d_ff: int, dropout: float) -> None:
-        super(DecoderBlock, self).__init__()
-        self.self_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
-        self.cross_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
-        self.feed_forward_block = FeedForwardBlock(d_model, d_ff, dropout)
-        self.residual_connections = nn.ModuleList(ResidualConnection(d_model, dropout) for _ in range(3))
-
-    def forward(self, x, encoder_output, src_mask, tgt_mask):
-        # x: (batch, d_seq_len, d_model)
-        # encoder_output: (batch, e_seq_len, d_model)
-        # src_mask: (batch, 1, 1, e_seq_len)
-        # tgt_mask: (batch, 1, d_seq_len, d_seq_len)
-        x = self.residual_connections[0](x, lambda inp: self.self_attention_block(inp, inp, inp, tgt_mask))
-        x = self.residual_connections[1](x, lambda inp: self.cross_attention_block(inp, encoder_output, encoder_output,
-                                                                                   src_mask))
-        x = self.residual_connections[2](x, self.feed_forward_block)
-        return x
-
-
 class Decoder(XCoder):
-    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True,
-                 param_sharing=None) -> None:
-        super(Decoder, self).__init__(DecoderBlock, d_model, N, h, d_ff, dropout, first_norm, param_sharing)
+    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, param_sharing=None,
+                 first_norm=True) -> None:
+        super(Decoder, self).__init__(DecoderBlock, d_model, N, h, d_ff, dropout, param_sharing, first_norm)
 
     def forward(self, x, encoder_output, src_mask, tgt_mask):
         # x: (batch, d_seq_len, d_model)
@@ -304,9 +304,9 @@ class Transformer(nn.Module):
         # (batch, d_seq_len, d_model) --> (batch, d_seq_len, tgt_vocab_size)
         return self.projection_layer(x)
 
-    def forward(self, encoder_input, encoder_mask, decoder_input, decoder_mask):
-        encoder_output = self.encode(encoder_input, encoder_mask)
-        del encoder_input
-        decoder_output = self.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)
-        del encoder_output
+    def forward(self, src, src_mask, tgt, tgt_mask):
+        encoder_output = self.encode(src, src_mask)
+        del src
+        decoder_output = self.decode(encoder_output, src_mask, tgt, tgt_mask)
+        del encoder_output, src_mask, tgt, tgt_mask
         return self.project(decoder_output)
