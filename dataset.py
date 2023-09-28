@@ -44,6 +44,7 @@ class CustomSampler(Sampler):
             self.len_sets[len(item['src_tokens'])].append(i)
 
     def __iter__(self):
+        print("Sampler Iterator called.")
         if self.shuffle:
             for v in self.len_sets.values():
                 random.shuffle(v)
