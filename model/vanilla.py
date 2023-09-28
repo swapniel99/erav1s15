@@ -187,13 +187,13 @@ class DecoderBlock(nn.Module):
 
 
 class XCoder(nn.Module):
-    def __init__(self, XBcoderBlock: type, d_model: int, N: int, h: int, d_ff: int, dropout: float, param_sharing=None,
+    def __init__(self, XcoderBlock: type, d_model: int, N: int, h: int, d_ff: int, dropout: float, param_sharing=None,
                  first_norm=True) -> None:
         super(XCoder, self).__init__()
         self.norm = LayerNormalization(d_model) if first_norm else nn.Identity()
         self.layers = nn.ModuleList()
         for _ in range(N):
-            self.layers.append(XBcoderBlock(d_model, h, d_ff, dropout))
+            self.layers.append(XcoderBlock(d_model, h, d_ff, dropout))
 
         # if param_sharing is None:
         #     M = N
