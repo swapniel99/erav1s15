@@ -1,5 +1,6 @@
 import torch
 import random
+from collections import defaultdict
 from torch.utils.data import Dataset, Sampler, random_split
 from datasets import load_dataset, load_from_disk
 
@@ -37,15 +38,20 @@ class CustomSampler(Sampler):
         self.len_dataset = len(dataset)
         self.batch_size = batch_size
         self.shuffle = shuffle
-        n_batches = self.len_dataset // self.batch_size
-        self.batches = [list(range(i * self.batch_size, (i + 1) * self.batch_size)) for i in range(n_batches)]
-        if self.len_dataset % self.batch_size != 0:
-            self.batches.append(list(range(n_batches * self.batch_size, self.len_dataset)))
+
+        self.len_sets = defaultdict(list)
+        for i, item in enumerate(dataset):
+            self.len_sets[len(item['src_tokens'])].append(i)
 
     def __iter__(self):
         if self.shuffle:
-            random.shuffle(self.batches)
-        yield from (item for batch in self.batches for item in batch)
+            for v in self.len_sets.values():
+                random.shuffle(v)
+        all_indices = [item for k in sorted(self.len_sets.keys()) for item in self.len_sets[k]]
+        batches = [all_indices[i:i + self.batch_size] for i in range(0, len(all_indices), self.batch_size)]
+        if self.shuffle:
+            random.shuffle(batches)
+        yield from (item for batch in batches for item in batch)
 
     def __len__(self):
         return self.len_dataset
