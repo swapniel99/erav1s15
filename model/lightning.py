@@ -95,7 +95,7 @@ class Model(LightningModule):
 
             self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
                                            param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
-                                           heads=self.heads, dropout=self.dropout)
+                                           heads=self.heads, dropout=self.dropout, max_seq_len=350)
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
 
