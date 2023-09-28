@@ -11,7 +11,8 @@ from dataset import RawDataset, BilingualDataset
 
 
 class Model(LightningModule):
-    def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', label_smoothing: float = 0.1,
+    def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', param_sharing: str = None, d_model: int = 512,
+                 d_ff: int = 2048, heads: int = 8, dropout: float = 0.1, label_smoothing: float = 0.1,
                  batch_size: int = 64, learning_rate: float = 1e-3, enable_gc='batch', num_epochs=20) -> None:
         super(Model, self).__init__()
         self.save_hyperparameters()
@@ -21,6 +22,11 @@ class Model(LightningModule):
         self.tgt_lang = tgt_lang
         self.train_ds = None
         self.val_ds = None
+        self.param_sharing = param_sharing
+        self.d_model = d_model
+        self.d_ff = d_ff
+        self.heads = heads
+        self.dropout = dropout
         self.label_smoothing = label_smoothing
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -85,7 +91,9 @@ class Model(LightningModule):
                                            shuffle=False)
             del train_ds_raw, val_ds_raw
 
-            self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size())
+            self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
+                                           param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
+                                           heads=self.heads, dropout=self.dropout)
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
 

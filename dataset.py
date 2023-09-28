@@ -73,6 +73,8 @@ class BilingualDataset(Dataset):
 
         if uniform_batches:
             self.dataset.sort(key=lambda x: len(x['src_tokens']))
+        else:
+            batch_size = 1
         self.sampler = CustomSampler(self.dataset, batch_size, shuffle)
 
         self.sos_token = self.tgt_tokenizer.token_to_id('[SOS]')
