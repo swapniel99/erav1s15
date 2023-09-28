@@ -191,35 +191,32 @@ class XCoder(nn.Module):
                  first_norm=True) -> None:
         super(XCoder, self).__init__()
         self.norm = LayerNormalization(d_model) if first_norm else nn.Identity()
-        self.layers = nn.ModuleList()
-        for _ in range(N):
-            self.layers.append(XcoderBlock(d_model, h, d_ff, dropout))
 
-        # if param_sharing is None:
-        #     M = N
-        #     ind = range(M)
-        # else:
-        #     if N % 2 == 1:
-        #         print("WARNING: Cannot share parameters in odd number of layers.")
-        #     M = N // 2
-        #     ind = list()
-        #     if param_sharing == 'sequence':
-        #         for i in range(M):
-        #             for _ in range(2):
-        #                 ind.append(i)
-        #     elif param_sharing == 'cycle':
-        #         for _ in range(2):
-        #             for i in range(M):
-        #                 ind.append(i)
-        #     elif param_sharing == 'cycle_rev':
-        #         for i in range(M):
-        #             ind.append(i)
-        #         for i in range(M - 1, -1, -1):
-        #             ind.append(i)
-        #     else:
-        #         raise ValueError(f'Unknown parameter sharing {param_sharing}')
-        # temp_layers = [XBcoderBlock(d_model, h, d_ff, dropout) for _ in range(M)]
-        # self.layers = nn.ModuleList(temp_layers[i] for i in ind)
+        if param_sharing is None:
+            M = N
+            ind = range(M)
+        else:
+            if N % 2 == 1:
+                print("WARNING: Cannot share parameters in odd number of layers.")
+            M = N // 2
+            ind = list()
+            if param_sharing == 'sequence':
+                for i in range(M):
+                    for _ in range(2):
+                        ind.append(i)
+            elif param_sharing == 'cycle':
+                for _ in range(2):
+                    for i in range(M):
+                        ind.append(i)
+            elif param_sharing == 'cycle_rev':
+                for i in range(M):
+                    ind.append(i)
+                for i in range(M - 1, -1, -1):
+                    ind.append(i)
+            else:
+                raise ValueError(f'Unknown parameter sharing {param_sharing}')
+        temp_layers = [XcoderBlock(d_model, h, d_ff, dropout) for _ in range(M)]
+        self.layers = nn.ModuleList(temp_layers[i] for i in ind)
 
 
 class Encoder(XCoder):
@@ -253,9 +250,9 @@ class Decoder(XCoder):
 
 
 class ProjectionLayer(nn.Module):
-    def __init__(self, d_model: int, vocab_size: int) -> None:
+    def __init__(self, d_model: int, tgt_vocab_size: int) -> None:
         super(ProjectionLayer, self).__init__()
-        self.proj = nn.Linear(d_model, vocab_size)
+        self.proj = nn.Linear(d_model, tgt_vocab_size)
 
     def forward(self, x):
         # (batch, d_seq_len, d_model) --> (batch, d_seq_len, tgt_vocab_size)
@@ -263,7 +260,7 @@ class ProjectionLayer(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int = 350, d_model: int = 512, N: int = 6,
+    def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int = 200, d_model: int = 512, N: int = 6,
                  h: int = 8, dropout: float = 0.1, d_ff: int = 2048, param_sharing=None) -> None:
         """
         :param src_vocab_size: Source Vocab Size
