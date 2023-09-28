@@ -261,21 +261,21 @@ class ProjectionLayer(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int = 200, d_model: int = 512, N: int = 6,
-                 h: int = 8, dropout: float = 0.1, d_ff: int = 2048, param_sharing=None) -> None:
+                 heads: int = 8, dropout: float = 0.1, d_ff: int = 2048, param_sharing=None) -> None:
         """
         :param src_vocab_size: Source Vocab Size
         :param tgt_vocab_size: Target Vocab Size
         :param max_seq_len: Maximum Sequence Length
         :param d_model: Dimensionality of the model. Default is 512.
         :param N: Number of Encoder Blocks. Default is 6.
-        :param h: Number of Heads. Default is 8.
+        :param heads: Number of Heads. Default is 8.
         :param dropout: Dropout Rate. Default is 0.1.
         :param d_ff: Dimensionality of the Feed Forward Network. Default is 2048.
         :return: None.
         """
         super(Transformer, self).__init__()
-        self.encoder = Encoder(d_model, N, h, d_ff, dropout, param_sharing)
-        self.decoder = Decoder(d_model, N, h, d_ff, dropout, param_sharing)
+        self.encoder = Encoder(d_model, N, heads, d_ff, dropout, param_sharing)
+        self.decoder = Decoder(d_model, N, heads, d_ff, dropout, param_sharing)
         self.src_embed = InputEmbeddings(src_vocab_size, d_model)
         self.tgt_embed = InputEmbeddings(tgt_vocab_size, d_model)
         self.pos_embed = PositionalEncoding(d_model, max_seq_len, dropout)
