@@ -88,7 +88,7 @@ class BilingualDataset(Dataset):
         self.pad_token = self.tgt_tokenizer.token_to_id('[PAD]')
         self.sos_tokens = [self.sos_token]
         self.eos_tokens = [self.eos_token]
-        self.pad_tokens = [self.pad_token] * (max_src_len + src_tgt_diff)
+        self.pad_tokens = [self.pad_token] * (max_src_len + src_tgt_diff + 2)
 
     def __len__(self):
         return len(self.dataset)
