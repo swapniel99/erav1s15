@@ -149,13 +149,13 @@ class Model(LightningModule):
     def on_train_epoch_end(self):
         if self.enable_gc == 'epoch':
             garbage_collection_cuda()
-        print(f"Epoch: {self.current_epoch}, Global Steps: {self.global_step}, "
+        print(f"Epoch: {self.current_epoch + 1}, Global Steps: {self.global_step}, "
               f"Train Loss: {self.my_train_loss.compute()}, LR: {self.get_current_lrs()}")
         self.my_train_loss.reset()
 
     def on_validation_epoch_end(self):
         if self.enable_gc == 'epoch':
             garbage_collection_cuda()
-        print(f"Epoch: {self.current_epoch}, Global Steps: {self.global_step}, "
+        print(f"Epoch: {self.current_epoch + 1}, Global Steps: {self.global_step}, "
               f"Val Loss: {self.my_val_loss.compute()}, LR: {self.get_current_lrs()}")
         self.my_val_loss.reset()
