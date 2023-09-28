@@ -75,9 +75,6 @@ class Model(LightningModule):
         self.log(f"val_loss", self.my_val_loss.compute(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        return self.common_forward(batch)
-
     def prepare_data(self) -> None:
         RawDataset('opus_books', self.src_lang, self.tgt_lang)
 
@@ -135,18 +132,11 @@ class Model(LightningModule):
         return DataLoader(self.val_ds, batch_size=self.batch_size, collate_fn=self.val_ds.collate_fn, shuffle=False,
                           num_workers=os.cpu_count(), pin_memory=True)
 
-    def predict_dataloader(self) -> DataLoader:
-        return self.val_dataloader()
-
     def on_train_batch_end(self, outputs, batch, batch_idx):
         if self.enable_gc == 'batch':
             garbage_collection_cuda()
 
     def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-        if self.enable_gc == 'batch':
-            garbage_collection_cuda()
-
-    def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         if self.enable_gc == 'batch':
             garbage_collection_cuda()
 
@@ -169,7 +159,3 @@ class Model(LightningModule):
         print(f"Epoch: {self.current_epoch}, Global Steps: {self.global_step}, "
               f"Val Loss: {self.my_val_loss.compute()}, LR: {self.get_current_lrs()}")
         self.my_val_loss.reset()
-
-    def on_predict_epoch_end(self):
-        if self.enable_gc == 'epoch':
-            garbage_collection_cuda()
