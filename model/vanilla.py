@@ -193,30 +193,30 @@ class XCoder(nn.Module):
         self.norm = LayerNormalization(d_model) if first_norm else nn.Identity()
 
         if param_sharing is None:
-            M = N
-            ind = range(M)
+            self.layers = nn.ModuleList(XcoderBlock(d_model, h, d_ff, dropout) for _ in range(N))
         else:
             if N % 2 == 1:
                 print("WARNING: Cannot share parameters in odd number of layers.")
             M = N // 2
-            ind = list()
+
+            temp_layers = [XcoderBlock(d_model, h, d_ff, dropout) for _ in range(M)]
+            self.layers = nn.ModuleList()
+
             if param_sharing == 'sequence':
-                for i in range(M):
+                for layer in temp_layers:
                     for _ in range(2):
-                        ind.append(i)
+                        self.layers.append(layer)
             elif param_sharing == 'cycle':
                 for _ in range(2):
-                    for i in range(M):
-                        ind.append(i)
+                    for layer in temp_layers:
+                        self.layers.append(layer)
             elif param_sharing == 'cycle_rev':
-                for i in range(M):
-                    ind.append(i)
-                for i in range(M - 1, -1, -1):
-                    ind.append(i)
+                for layer in temp_layers:
+                    self.layers.append(layer)
+                for layer in reversed(temp_layers):
+                    self.layers.append(layer)
             else:
                 raise ValueError(f'Unknown parameter sharing {param_sharing}')
-        temp_layers = [XcoderBlock(d_model, h, d_ff, dropout) for _ in range(M)]
-        self.layers = nn.ModuleList(temp_layers[i] for i in ind)
 
 
 class Encoder(XCoder):
