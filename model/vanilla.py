@@ -166,13 +166,46 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class Encoder(nn.Module):
-    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True) -> None:
-        super(Encoder, self).__init__()
+class XCoder(nn.Module):
+    def __init__(self, XBcoderBlock: type, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True,
+                 param_sharing=None) -> None:
+        super(XCoder, self).__init__()
         self.norm = LayerNormalization(d_model) if first_norm else nn.Identity()
         self.layers = nn.ModuleList()
         for _ in range(N):
-            self.layers.append(EncoderBlock(d_model, h, d_ff, dropout))
+            self.layers.append(XBcoderBlock(d_model, h, d_ff, dropout))
+
+        # if param_sharing is None:
+        #     M = N
+        #     ind = range(M)
+        # else:
+        #     if N % 2 == 1:
+        #         print("WARNING: Cannot share parameters in odd number of layers.")
+        #     M = N // 2
+        #     ind = list()
+        #     if param_sharing == 'sequence':
+        #         for i in range(M):
+        #             for _ in range(2):
+        #                 ind.append(i)
+        #     elif param_sharing == 'cycle':
+        #         for _ in range(2):
+        #             for i in range(M):
+        #                 ind.append(i)
+        #     elif param_sharing == 'cycle_rev':
+        #         for i in range(M):
+        #             ind.append(i)
+        #         for i in range(M - 1, -1, -1):
+        #             ind.append(i)
+        #     else:
+        #         raise ValueError(f'Unknown parameter sharing {param_sharing}')
+        # temp_layers = [XBcoderBlock(d_model, h, d_ff, dropout) for _ in range(M)]
+        # self.layers = nn.ModuleList(temp_layers[i] for i in ind)
+
+
+class Encoder(XCoder):
+    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True,
+                 param_sharing=None) -> None:
+        super(Encoder, self).__init__(EncoderBlock, d_model, N, h, d_ff, dropout, first_norm, param_sharing)
 
     def forward(self, x, src_mask):
         # x: (batch, e_seq_len, d_model)
@@ -203,13 +236,10 @@ class DecoderBlock(nn.Module):
         return x
 
 
-class Decoder(nn.Module):
-    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True) -> None:
-        super(Decoder, self).__init__()
-        self.norm = LayerNormalization(d_model) if first_norm else nn.Identity()
-        self.layers = nn.ModuleList()
-        for _ in range(N):
-            self.layers.append(DecoderBlock(d_model, h, d_ff, dropout))
+class Decoder(XCoder):
+    def __init__(self, d_model: int, N: int, h: int, d_ff: int, dropout: float, first_norm=True,
+                 param_sharing=None) -> None:
+        super(Decoder, self).__init__(DecoderBlock, d_model, N, h, d_ff, dropout, first_norm, param_sharing)
 
     def forward(self, x, encoder_output, src_mask, tgt_mask):
         # x: (batch, d_seq_len, d_model)
@@ -234,7 +264,7 @@ class ProjectionLayer(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int = 350, d_model: int = 512, N: int = 6,
-                 h: int = 8, dropout: float = 0.1, d_ff: int = 2048) -> None:
+                 h: int = 8, dropout: float = 0.1, d_ff: int = 2048, param_sharing=None) -> None:
         """
         :param src_vocab_size: Source Vocab Size
         :param tgt_vocab_size: Target Vocab Size
@@ -247,8 +277,8 @@ class Transformer(nn.Module):
         :return: None.
         """
         super(Transformer, self).__init__()
-        self.encoder = Encoder(d_model, N, h, d_ff, dropout)
-        self.decoder = Decoder(d_model, N, h, d_ff, dropout)
+        self.encoder = Encoder(d_model, N, h, d_ff, dropout, param_sharing)
+        self.decoder = Decoder(d_model, N, h, d_ff, dropout, param_sharing)
         self.src_embed = InputEmbeddings(src_vocab_size, d_model)
         self.tgt_embed = InputEmbeddings(tgt_vocab_size, d_model)
         self.pos_embed = PositionalEncoding(d_model, max_seq_len, dropout)
