@@ -260,7 +260,7 @@ class ProjectionLayer(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int = 200, d_model: int = 512, N: int = 6,
+    def __init__(self, src_vocab_size: int, tgt_vocab_size: int, max_seq_len: int = 350, d_model: int = 512, N: int = 6,
                  heads: int = 8, dropout: float = 0.1, d_ff: int = 2048, param_sharing=None) -> None:
         """
         :param src_vocab_size: Source Vocab Size
