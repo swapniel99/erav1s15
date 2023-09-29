@@ -103,8 +103,7 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # Initialize the parameters
         for p in self.parameters():
-            if p.dim() > 1:
-                nn.init.xavier_uniform_(p)
+            nn.init.xavier_uniform_(p)
 
     @staticmethod
     def attention(query, key, value, mask, dropout: nn.Dropout):

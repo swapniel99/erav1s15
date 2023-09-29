@@ -82,6 +82,7 @@ class ResidualConnection(nn.Module):
 
     def forward(self, x, sublayer):
         # (batch, seq_len, d_model)
+        # return self.norm(x + self.dropout(sublayer(x)))  # Not working with adjustment in enc and dec.
         return x + self.dropout(sublayer(self.norm(x)))
 
 
