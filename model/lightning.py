@@ -7,6 +7,7 @@ from torchmetrics import MeanMetric
 
 import utils
 from .vanilla import Transformer
+from .model import build_transformer
 from dataset import RawDataset, BilingualDataset
 
 
@@ -93,9 +94,11 @@ class Model(LightningModule):
                                            shuffle=False, max_src_len=350, src_tgt_diff=350)
             del train_ds_raw, val_ds_raw
 
-            self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
-                                           param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
-                                           heads=self.heads, dropout=self.dropout, max_seq_len=350)
+            # self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
+            #                                param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
+            #                                heads=self.heads, dropout=self.dropout, max_seq_len=350)
+            self.transformer = build_transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
+                                                 350, 350)
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
 
