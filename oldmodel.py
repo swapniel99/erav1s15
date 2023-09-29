@@ -75,14 +75,15 @@ class PositionalEncoding(nn.Module):
 
 
 class ResidualConnection(nn.Module):
+    def __init__(self, d_model: int, dropout: float) -> None:
+        super(ResidualConnection, self).__init__()
+        self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
+        self.norm = LayerNormalization(d_model)
 
-        def __init__(self, features: int, dropout: float) -> None:
-            super().__init__()
-            self.dropout = nn.Dropout(dropout)
-            self.norm = LayerNormalization(features)
+    def forward(self, x, sublayer):
+        # (batch, seq_len, d_model)
+        return self.norm(x + self.dropout(sublayer(x)))
 
-        def forward(self, x, sublayer):
-            return x + self.dropout(sublayer(self.norm(x)))
 
 class MultiHeadAttentionBlock(nn.Module):
 
@@ -164,9 +165,10 @@ class Encoder(nn.Module):
         self.norm = LayerNormalization(features)
 
     def forward(self, x, mask):
+        x = self.norm(x)
         for layer in self.layers:
             x = layer(x, mask)
-        return self.norm(x)
+        return x
 
 class DecoderBlock(nn.Module):
 
@@ -191,9 +193,10 @@ class Decoder(nn.Module):
         self.norm = LayerNormalization(features)
 
     def forward(self, x, encoder_output, src_mask, tgt_mask):
+        x = self.norm(x)
         for layer in self.layers:
             x = layer(x, encoder_output, src_mask, tgt_mask)
-        return self.norm(x)
+        return x
 
 class ProjectionLayer(nn.Module):
 
