@@ -51,6 +51,9 @@ class Model(LightningModule):
     def forward(self, *args):
         return self.transformer.forward(*args)
 
+    def summary(self):
+        return self.transformer.summary()
+
     def common_forward(self, batch):
         return self.forward(batch['encoder_input'],  # (B, seq_len)
                             batch['encoder_mask'],  # (B, 1, 1, seq_len)
@@ -97,7 +100,8 @@ class Model(LightningModule):
 
             if self.hparams.variant == 'old':
                 self.transformer = build_transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
-                                                     350, 350)
+                                                     350, 350,
+                                                     d_model=self.d_model, h=self.heads, d_ff=self.d_ff)
             else:
                 self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
                                                param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,

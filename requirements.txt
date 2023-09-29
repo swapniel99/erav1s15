@@ -6,3 +6,5 @@ tokenizers
 torchmetrics
 tensorboard
 tqdm
+pytorch-lightning
+torchinfo
