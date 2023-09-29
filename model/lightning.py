@@ -7,7 +7,7 @@ from torchmetrics import MeanMetric
 
 import utils
 # from .vanilla import Transformer
-from .oldmodel import build_transformer
+from oldmodel import build_transformer
 from dataset import RawDataset, BilingualDataset
 
 
