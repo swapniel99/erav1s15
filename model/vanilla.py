@@ -82,7 +82,7 @@ class ResidualConnection(nn.Module):
 
     def forward(self, x, sublayer):
         # (batch, seq_len, d_model)
-        return self.norm(x + self.dropout(sublayer(x)))
+        return x + self.dropout(sublayer(self.norm(x)))
 
 
 class MultiHeadAttentionBlock(nn.Module):
@@ -227,10 +227,9 @@ class Encoder(XCoder):
     def forward(self, x, src_mask):
         # x: (batch, e_seq_len, d_model)
         # src_mask: (batch, 1, 1, e_seq_len)
-        x = self.norm(x)
         for layer in self.layers:
             x = layer(x, src_mask)
-        return x
+        return self.norm(x)
 
 
 class Decoder(XCoder):
@@ -243,10 +242,9 @@ class Decoder(XCoder):
         # encoder_output: (batch, e_seq_len, d_model)
         # src_mask: (batch, 1, 1, e_seq_len)
         # tgt_mask: (batch, 1, d_seq_len, d_seq_len)
-        x = self.norm(x)
         for layer in self.layers:
             x = layer(x, encoder_output, src_mask, tgt_mask)
-        return x
+        return self.norm(x)
 
 
 class ProjectionLayer(nn.Module):
