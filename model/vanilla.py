@@ -33,17 +33,16 @@ class FeedForwardBlock(nn.Module):
         return self.linear_2(self.dropout(self.linear_1(x).relu()))
 
 
-class InputEmbeddings(nn.Module):
-    def __init__(self, d_model: int, vocab_size: int) -> None:
-        super().__init__()
+class InputEmbeddings(nn.Embedding):
+    def __init__(self, vocab_size: int, d_model: int) -> None:
+        super(InputEmbeddings, self).__init__(vocab_size, d_model)
         self.sqrt_d_model = math.sqrt(d_model)
-        self.vocab_size = vocab_size
-        self.embedding = nn.Embedding(vocab_size, d_model)
 
     def forward(self, x):
         # (batch, seq_len) --> (batch, seq_len, d_model)
         # Multiply by sqrt(d_model) to scale the embeddings according to the paper
-        return self.embedding(x) * self.sqrt_d_model
+        # Done probably so that positional embeddings are not as loud as input embeddings
+        return super(InputEmbeddings, self).forward(x) * self.sqrt_d_model
 
 
 class PositionalEncoding(nn.Module):
@@ -71,7 +70,7 @@ class PositionalEncoding(nn.Module):
         if x.shape[1] > self.max_seq_len:
             raise ValueError(f"Expected sequence length {x.shape[1]} <= {self.max_seq_len} in Position Encoder.")
         # (batch, seq_len, d_model)
-        x = x + self.pe[:, :x.shape[1], :].requires_grad_(False)
+        x = x + self.pe[:, :x.shape[1], :]
         return self.dropout(x)
 
 
