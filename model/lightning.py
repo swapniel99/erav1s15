@@ -6,8 +6,8 @@ from pytorch_lightning.utilities.memory import garbage_collection_cuda
 from torchmetrics import MeanMetric
 
 import utils
-from .vanilla import Transformer
-from .model import build_transformer
+# from .vanilla import Transformer
+from .oldmodel import build_transformer
 from dataset import RawDataset, BilingualDataset
 
 
