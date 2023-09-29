@@ -70,7 +70,7 @@ class PositionalEncoding(nn.Module):
         if x.shape[1] > self.max_seq_len:
             raise ValueError(f"Expected sequence length {x.shape[1]} <= {self.max_seq_len} in Position Encoder.")
         # (batch, seq_len, d_model)
-        x = x + self.pe[:, :x.shape[1], :]#.requires_grad_(False)
+        x = x + self.pe[:, :x.shape[1], :].requires_grad_(False)
         return self.dropout(x)
 
 
