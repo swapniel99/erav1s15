@@ -51,8 +51,8 @@ class Model(LightningModule):
     def forward(self, *args):
         return self.transformer.forward(*args)
 
-    def summary(self):
-        return self.transformer.summary()
+    def summary(self, depth=3):
+        return self.transformer.summary(depth=depth)
 
     def common_forward(self, batch):
         return self.forward(batch['encoder_input'],  # (B, seq_len)

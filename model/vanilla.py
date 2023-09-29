@@ -308,5 +308,5 @@ class Transformer(nn.Module):
         del encoder_output, src_mask, tgt, tgt_mask
         return self.project(decoder_output)
 
-    def summary(self):
-        return torchinfo.summary(self)
+    def summary(self, depth=3):
+        return torchinfo.summary(self, depth=depth)

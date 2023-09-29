@@ -238,8 +238,8 @@ class Transformer(nn.Module):
         del encoder_output, src_mask, tgt, tgt_mask
         return self.project(decoder_output)
 
-    def summary(self):
-        return torchinfo.summary(self)
+    def summary(self, depth=3):
+        return torchinfo.summary(self, depth=depth)
 
 
 def build_transformer(src_vocab_size: int, tgt_vocab_size: int, src_seq_len: int, tgt_seq_len: int, d_model: int=512, N: int=6, h: int=8, dropout: float=0.1, d_ff: int=2048) -> Transformer:
