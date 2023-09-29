@@ -7,15 +7,13 @@ from torchmetrics import MeanMetric
 
 import utils
 from .vanilla import Transformer
-from oldmodel import build_transformer
 from dataset import RawDataset, BilingualDataset
 
 
 class Model(LightningModule):
     def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', param_sharing: str = None, d_model: int = 512,
                  d_ff: int = 2048, heads: int = 8, dropout: float = 0.1, label_smoothing: float = 0.1,
-                 batch_size: int = 32, learning_rate: float = 1e-4, enable_gc='batch', num_epochs=20,
-                 variant='old') -> None:
+                 batch_size: int = 32, learning_rate: float = 1e-4, enable_gc='batch', num_epochs=20) -> None:
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
@@ -98,14 +96,9 @@ class Model(LightningModule):
                                            shuffle=False, max_src_len=50, src_tgt_diff=10)
             del train_ds_raw, val_ds_raw
 
-            if self.hparams.variant == 'old':
-                self.transformer = build_transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
-                                                     100, 100,
-                                                     d_model=self.d_model, h=self.heads, d_ff=self.d_ff)
-            else:
-                self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
-                                               param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
-                                               heads=self.heads, dropout=self.dropout, max_seq_len=100)
+            self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
+                                           param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
+                                           heads=self.heads, dropout=self.dropout, max_seq_len=100)
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
 
