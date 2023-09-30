@@ -13,10 +13,9 @@ from dataset import RawDataset, BilingualDataset
 
 
 class Model(LightningModule):
-    def __init__(self, src_lang: str = 'en', tgt_lang: str = 'it', param_sharing: str = None, d_model: int = 512,
+    def __init__(self, src_lang: str = 'en', tgt_lang: str = 'fr', param_sharing: str = None, d_model: int = 512,
                  d_ff: int = 2048, heads: int = 8, dropout: float = 0.1, label_smoothing: float = 0.1,
-                 batch_size: int = 32, learning_rate: float = 1e-4, enable_gc='batch', num_epochs=20,
-                 variant='new') -> None:
+                 batch_size: int = 32, learning_rate: float = 1e-4, enable_gc='batch', num_epochs=20) -> None:
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
@@ -72,13 +71,15 @@ class Model(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.common_step(batch)
         self.my_train_loss.update(loss, batch['label'].shape[0])
-        self.log(f"train_loss", self.my_train_loss.compute(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"train_loss", self.my_train_loss.compute(), on_step=True, on_epoch=True, prog_bar=True,
+                 logger=True, batch_size=batch['label'].shape[0])
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.common_step(batch)
         self.my_val_loss.update(loss, batch['label'].shape[0])
-        self.log(f"val_loss", self.my_val_loss.compute(), on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"val_loss", self.my_val_loss.compute(), on_step=True, on_epoch=True, prog_bar=True, logger=True,
+                 batch_size=batch['label'].shape[0])
         return loss
 
     def prepare_data(self) -> None:
@@ -93,10 +94,10 @@ class Model(LightningModule):
             train_ds_raw, val_ds_raw = rd.split(0.9)
             self.train_ds = BilingualDataset(train_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
                                              rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
-                                             shuffle=True, max_src_len=350, src_tgt_diff=350)
+                                             shuffle=True, max_src_len=150, src_tgt_diff=10)
             self.val_ds = BilingualDataset(val_ds_raw, self.src_lang, self.tgt_lang, rd.src_tokenizer,
                                            rd.tgt_tokenizer, batch_size=self.batch_size, uniform_batches=True,
-                                           shuffle=False, max_src_len=350, src_tgt_diff=350)
+                                           shuffle=False, max_src_len=150, src_tgt_diff=10)
             del train_ds_raw, val_ds_raw
 
             # if self.hparams.variant == 'old':
@@ -105,8 +106,8 @@ class Model(LightningModule):
             #                                          350, 350, d_model=self.d_model, h=self.heads, d_ff=self.d_ff)
             # else:
             self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
-                                               param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
-                                               heads=self.heads, dropout=self.dropout, max_seq_len=350)
+                                           param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
+                                           heads=self.heads, dropout=self.dropout, max_seq_len=200)
 
             self.criterion = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing,
                                                  ignore_index=self.train_ds.pad_token)
@@ -122,7 +123,7 @@ class Model(LightningModule):
             max_lr=effective_lr,
             steps_per_epoch=(len(self.train_dataloader()) + device_count - 1) // device_count,
             epochs=self.num_epochs,
-            pct_start=int(0.3 * self.num_epochs) / self.num_epochs,  # 0.2
+            pct_start=int(0.2 * self.num_epochs) / self.num_epochs,
             div_factor=100,
             three_phase=False,
             final_div_factor=100,
