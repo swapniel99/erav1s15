@@ -8,7 +8,7 @@ import torchinfo
 
 import utils
 from .vanilla import Transformer
-from oldmodel import build_transformer
+# from oldmodel import build_transformer
 from dataset import RawDataset, BilingualDataset
 
 
@@ -99,12 +99,12 @@ class Model(LightningModule):
                                            shuffle=False, max_src_len=350, src_tgt_diff=350)
             del train_ds_raw, val_ds_raw
 
-            if self.hparams.variant == 'old':
-                self.transformer = build_transformer(rd.src_tokenizer.get_vocab_size(),
-                                                     rd.tgt_tokenizer.get_vocab_size(),
-                                                     350, 350, d_model=self.d_model, h=self.heads, d_ff=self.d_ff)
-            else:
-                self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
+            # if self.hparams.variant == 'old':
+            #     self.transformer = build_transformer(rd.src_tokenizer.get_vocab_size(),
+            #                                          rd.tgt_tokenizer.get_vocab_size(),
+            #                                          350, 350, d_model=self.d_model, h=self.heads, d_ff=self.d_ff)
+            # else:
+            self.transformer = Transformer(rd.src_tokenizer.get_vocab_size(), rd.tgt_tokenizer.get_vocab_size(),
                                                param_sharing=self.param_sharing, d_model=self.d_model, d_ff=self.d_ff,
                                                heads=self.heads, dropout=self.dropout, max_seq_len=350)
 
