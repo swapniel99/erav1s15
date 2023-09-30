@@ -27,6 +27,8 @@ class FeedForwardBlock(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.linear_2 = nn.Linear(d_ff, d_model) # w2 and b2
 
+        nn.init.xavier_uniform_(self.linear_2.weight)
+
     def forward(self, x):
         # (batch, seq_len, d_model) --> (batch, seq_len, d_ff) --> (batch, seq_len, d_model)
         return self.linear_2(self.dropout(torch.relu(self.linear_1(x))))
@@ -38,6 +40,9 @@ class InputEmbeddings(nn.Module):
         self.d_model = d_model
         self.vocab_size = vocab_size
         self.embedding = nn.Embedding(vocab_size, d_model)
+
+        for p in self.embedding.parameters():
+            nn.init.xavier_uniform_(p)
 
     def forward(self, x):
         # (batch, seq_len) --> (batch, seq_len, d_model)
@@ -81,7 +86,6 @@ class ResidualConnection(nn.Module):
             return x + self.dropout(sublayer(self.norm(x)))
 
 class MultiHeadAttentionBlock(nn.Module):
-
     def __init__(self, d_model: int, h: int, dropout: float) -> None:
         super().__init__()
         self.d_model = d_model # Embedding vector size
@@ -95,6 +99,10 @@ class MultiHeadAttentionBlock(nn.Module):
         self.w_v = nn.Linear(d_model, d_model, bias=False) # Wv
         self.w_o = nn.Linear(d_model, d_model, bias=False) # Wo
         self.dropout = nn.Dropout(dropout)
+
+        # Initialize the parameters
+        for p in self.parameters():
+            nn.init.xavier_uniform_(p)
 
     @staticmethod
     def attention(query, key, value, mask, dropout: nn.Dropout):
@@ -191,6 +199,8 @@ class ProjectionLayer(nn.Module):
     def __init__(self, d_model, vocab_size) -> None:
         super().__init__()
         self.proj = nn.Linear(d_model, vocab_size)
+
+        nn.init.xavier_uniform_(self.proj.weight)
 
     def forward(self, x) -> None:
         # (batch, seq_len, d_model) --> (batch, seq_len, vocab_size)

@@ -28,6 +28,8 @@ class FeedForwardBlock(nn.Module):
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
         self.linear_2 = nn.Linear(d_ff, d_model)  # w2 and b2
 
+        nn.init.xavier_uniform_(self.linear_2.weight)
+
     def forward(self, x):
         # (batch, seq_len, d_model) --> (batch, seq_len, d_ff) --> (batch, seq_len, d_model)
         return self.linear_2(self.dropout(self.linear_1(x).relu()))
@@ -37,6 +39,9 @@ class InputEmbeddings(nn.Embedding):
     def __init__(self, vocab_size: int, d_model: int) -> None:
         super(InputEmbeddings, self).__init__(vocab_size, d_model)
         self.sqrt_d_model = math.sqrt(d_model)
+
+        for p in self.parameters():
+            nn.init.xavier_uniform_(p)
 
     def forward(self, x):
         # (batch, seq_len) --> (batch, seq_len, d_model)
@@ -252,6 +257,8 @@ class ProjectionLayer(nn.Module):
     def __init__(self, d_model: int, tgt_vocab_size: int) -> None:
         super(ProjectionLayer, self).__init__()
         self.proj = nn.Linear(d_model, tgt_vocab_size)
+
+        nn.init.xavier_uniform_(self.proj.weight)
 
     def forward(self, x):
         # (batch, d_seq_len, d_model) --> (batch, d_seq_len, tgt_vocab_size)
