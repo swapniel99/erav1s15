@@ -277,9 +277,4 @@ def build_transformer(src_vocab_size: int, tgt_vocab_size: int, src_seq_len: int
     # Create the transformer
     transformer = Transformer(encoder, decoder, src_embed, tgt_embed, src_pos, tgt_pos, projection_layer)
     
-    # Initialize the parameters
-    for p in transformer.parameters():
-        if p.dim() > 1:
-            nn.init.xavier_uniform_(p)
-    
     return transformer
