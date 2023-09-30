@@ -31,7 +31,7 @@ def get_or_build_tokenizer(file_path, ds, lang):
         # Most code taken from: https://huggingface.co/docs/tokenizers/quicktour
         tokenizer = Tokenizer(WordLevel(unk_token='[UNK]'))
         tokenizer.pre_tokenizer = Whitespace()
-        trainer = WordLevelTrainer(special_tokens=['[UNK]', '[PAD]', '[SOS]', '[EOS]'], min_frequency=2)
+        trainer = WordLevelTrainer(special_tokens=['[UNK]', '[PAD]', '[SOS]', '[EOS]'], min_frequency=4)
         tokenizer.train_from_iterator((item['translation'][lang] for item in ds), trainer=trainer)
         tokenizer.save(str(tokenizer_path))
     else:
