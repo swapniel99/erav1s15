@@ -306,6 +306,3 @@ class Transformer(nn.Module):
         decoder_output = self.decode(encoder_output, src_mask, tgt, tgt_mask)
         del encoder_output, src_mask, tgt, tgt_mask
         return self.project(decoder_output)
-
-    def summary(self, depth=3):
-        return torchinfo.summary(self, depth=depth)

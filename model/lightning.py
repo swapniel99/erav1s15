@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.memory import garbage_collection_cuda
 from torchmetrics import MeanMetric
+import torchinfo
 
 import utils
 from .vanilla import Transformer
@@ -52,7 +53,7 @@ class Model(LightningModule):
         return self.transformer.forward(*args)
 
     def summary(self, depth=3):
-        return self.transformer.summary(depth=depth)
+        return torchinfo.summary(self.transformer, depth=depth)
 
     def common_forward(self, batch):
         return self.forward(batch['encoder_input'],  # (B, seq_len)
