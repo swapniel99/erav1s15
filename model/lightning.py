@@ -15,7 +15,7 @@ from dataset import RawDataset, BilingualDataset
 class Model(LightningModule):
     def __init__(self, src_lang: str = 'en', tgt_lang: str = 'fr', param_sharing: str = 'cycle_rev', d_model: int = 512,
                  d_ff: int = 128, heads: int = 8, dropout: float = 0.1, label_smoothing: float = 0.1,
-                 batch_size: int = 64, learning_rate: float = 1.2e-3, enable_gc='batch', num_epochs=40) -> None:
+                 batch_size: int = 64, learning_rate: float = 3e-3, enable_gc='batch', num_epochs=50) -> None:
         super(Model, self).__init__()
         self.save_hyperparameters()
         self.transformer = None
