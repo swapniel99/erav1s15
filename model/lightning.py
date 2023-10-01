@@ -123,7 +123,7 @@ class Model(LightningModule):
             max_lr=effective_lr,
             steps_per_epoch=(len(self.train_dataloader()) + device_count - 1) // device_count,
             epochs=self.num_epochs,
-            pct_start=5 / self.num_epochs,
+            pct_start=int(0.1 * self.num_epochs) / self.num_epochs,
             div_factor=10,
             three_phase=True,
             final_div_factor=10,
